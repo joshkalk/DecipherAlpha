@@ -1,4 +1,6 @@
-export const corpus = [
+import type { Inscription } from "./types";
+
+export const corpus: Inscription[] = [
   { id: "i01", words: [["NE", "MA", "DO"], ["NE"], ["gate"]] },
   { id: "i02", words: [["workers"], ["carry"], ["stone"], ["DA"], ["upper"]] },
   { id: "i03", words: [["workers"], ["carry"], ["ME", "KO"], ["DA"], ["upper"]] },
@@ -34,4 +36,3 @@ export const corpus = [
   { id: "i33", words: [["guard"], ["DA", "MO"], ["lower"], ["gate"]] },
   { id: "i34", words: [["lower"], ["KO", "ME"]] },
 ];
-
