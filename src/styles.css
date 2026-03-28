@@ -128,6 +128,17 @@ p {
   height: 48px;
   object-fit: contain;
   image-rendering: auto;
+  cursor: pointer;
+  transition: filter 100ms ease-out;
+}
+
+.sign:hover {
+  filter: brightness(0.85);
+}
+
+.sign.is-highlighted {
+  box-shadow: 0 0 0 3px #EAB308, inset 0 0 0 3px #EAB308;
+  outline: 2px solid #D4A017;
 }
 
 
