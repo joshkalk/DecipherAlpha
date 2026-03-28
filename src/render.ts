@@ -93,6 +93,10 @@ function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: 
 export function renderApp(state: AppState): string {
   const corpusMarkup = corpus.map((inscription) => renderInscription(inscription, state.selectedSignId)).join("");
 
+  const toolsActive = state.selectedTab === "tools";
+  const hypothesisActive = state.selectedTab === "hypothesis";
+  const lexiconActive = state.selectedTab === "lexicon";
+
   return `
     <main class="app-shell" aria-label="Decipherment alpha layout">
       <section class="pane pane-corpus" aria-labelledby="corpus-heading">
