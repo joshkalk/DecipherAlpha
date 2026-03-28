@@ -9,11 +9,13 @@ if (!root) {
   throw new Error("#app root element was not found.");
 }
 
+const appRoot = root;
+
 let state = { ...initialState };
 
 function render(): void {
-  root.innerHTML = renderApp(state);
+  appRoot.innerHTML = renderApp(state);
 }
 
-setupEvents(root, state, render);
+setupEvents(appRoot, state, render);
 render();
