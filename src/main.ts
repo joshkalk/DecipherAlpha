@@ -15,5 +15,5 @@ function render(): void {
   root.innerHTML = renderApp(state);
 }
 
-render();
 setupEvents(root, state, render);
+render();

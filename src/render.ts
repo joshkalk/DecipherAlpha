@@ -28,6 +28,7 @@ function renderSign(signId: string, isHighlighted: boolean): string {
   const imagePath = signImagePath(signId);
   const highlightClass = isHighlighted ? " is-highlighted" : "";
 
+  
   if (!imagePath) {
     // Fallback text keeps corpus rows readable if an unexpected sign id appears.
     return `<span class="sign sign-missing${highlightClass}" data-sign-id="${signId}" aria-label="missing sign ${signId}">${signId}</span>`;
@@ -90,13 +91,7 @@ function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: 
 }
 
 export function renderApp(state: AppState): string {
-  const corpusMarkup = corpus
-    .map((inscription) => renderInscription(inscription, state.selectedSignId))
-    .join("");
-
-  const toolsActive = state.selectedTab === "tools";
-  const hypothesisActive = state.selectedTab === "hypothesis";
-  const lexiconActive = state.selectedTab === "lexicon";
+  const corpusMarkup = corpus.map((inscription) => renderInscription(inscription, state.selectedSignId)).join("");
 
   return `
     <main class="app-shell" aria-label="Decipherment alpha layout">
