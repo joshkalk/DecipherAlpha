@@ -3,6 +3,11 @@ export type Inscription = {
   words: string[][];
 };
 
+export type LexiconEntry = {
+  english: string;
+  yot: string;
+};
+
 export type RightPaneTab = "tools" | "hypothesis" | "lexicon";
 
 export type AppState = {

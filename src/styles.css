@@ -42,7 +42,6 @@ body {
 .pane-workbench {
   position: sticky;
   top: 0;
-  height: fit-content;
 }
 
 .pane-body {
@@ -172,22 +171,65 @@ p {
   border-radius: 8px;
   padding: 0.35rem 0.7rem;
   font: inherit;
+  cursor: pointer;
 }
 
 .tab.is-active {
   background: #e5e7eb;
   border-color: #9ca3af;
+  font-weight: 500;
 }
 
 .tab-panels {
   display: grid;
   gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 
 .panel {
   border: 1px dashed #d1d5db;
   border-radius: 8px;
-  padding: 0.75rem;
+  display: none;
+}
+
+.panel.is-active {
+  display: block;
+}
+
+.lexicon-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.lexicon-table th,
+.lexicon-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.lexicon-table th {
+  background: #e5e7eb;
+  font-weight: 700;
+  border-top: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.lexicon-table tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.lex-col-english {
+  width: 70%;
+}
+
+.lex-col-yot {
+  width: 30%;
+  font-family: monospace;
+  font-weight: 500;
+  color: #374151;
   background: #fcfcfd;
 }
 
