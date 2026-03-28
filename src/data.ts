@@ -1,4 +1,4 @@
-import type { Inscription } from "./types";
+import type { Inscription, LexiconEntry } from "./types";
 
 export const corpus: Inscription[] = [
   { id: "i01", words: [["NE", "MA", "DO"], ["NE"], ["gate"]] },
@@ -35,4 +35,32 @@ export const corpus: Inscription[] = [
   { id: "i32", words: [["workers"], ["NA", "DE", "KO"], ["NE"], ["upper"]] },
   { id: "i33", words: [["guard"], ["DA", "MO"], ["lower"], ["gate"]] },
   { id: "i34", words: [["lower"], ["KO", "ME"]] },
+];
+
+export const lexicon: LexiconEntry[] = [
+  { english: "absent", yot: "NA-DE-KO" },
+  { english: "allow", yot: "DA-NO-ME" },
+  { english: "at", yot: "NO" },
+  { english: "carry", yot: "DO-KO" },
+  { english: "chamber", yot: "KE-NA-DO" },
+  { english: "complete", yot: "KO-ME" },
+  { english: "cut", yot: "DE-KA" },
+  { english: "enter", yot: "DA-KE" },
+  { english: "food", yot: "MO-NE" },
+  { english: "foreman", yot: "NE-MA-DO" },
+  { english: "gate", yot: "MA-KE" },
+  { english: "guard", yot: "NA-MO" },
+  { english: "in", yot: "NE" },
+  { english: "lower", yot: "DE-MO" },
+  { english: "messenger", yot: "NA-ME-DO" },
+  { english: "not", yot: "ME" },
+  { english: "rope", yot: "NE-KO" },
+  { english: "seal", yot: "DA-MO" },
+  { english: "set", yot: "DO-NE" },
+  { english: "stone", yot: "NO-KA" },
+  { english: "throw", yot: "DO-NA" },
+  { english: "to", yot: "DA" },
+  { english: "upper", yot: "KO-DA" },
+  { english: "wood", yot: "ME-KO" },
+  { english: "workers", yot: "KA-NO" },
 ];
