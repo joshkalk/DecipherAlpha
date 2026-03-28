@@ -42,9 +42,11 @@ function renderInscription(inscription: Inscription): string {
     })
     .join("");
 
+  const displayId = parseInt(inscription.id.slice(1)).toString();
+
   return `
     <article class="inscription-row" aria-label="Inscription ${inscription.id}">
-      <span class="inscription-id">${inscription.id}</span>
+      <span class="inscription-id">${displayId}</span>
       <div class="inscription-words">${wordsMarkup}</div>
     </article>
   `;
