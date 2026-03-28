@@ -24,20 +24,22 @@ function signImagePath(signId: string): string | null {
   return signImageById[signId] ?? null;
 }
 
-function renderSign(signId: string): string {
+function renderSign(signId: string, isHighlighted: boolean): string {
   const imagePath = signImagePath(signId);
+  const highlightClass = isHighlighted ? " is-highlighted" : "";
+  
   if (!imagePath) {
     // Fallback text keeps corpus rows readable if an unexpected sign id appears.
-    return `<span class="sign sign-missing" aria-label="missing sign ${signId}">${signId}</span>`;
+    return `<span class="sign sign-missing${highlightClass}" data-sign-id="${signId}" aria-label="missing sign ${signId}">${signId}</span>`;
   }
 
-  return `<img class="sign" src="${imagePath}" alt="${signId}" loading="lazy" decoding="async" />`;
+  return `<img class="sign${highlightClass}" data-sign-id="${signId}" src="${imagePath}" alt="${signId}" loading="lazy" decoding="async" />`;
 }
 
-function renderInscription(inscription: Inscription): string {
+function renderInscription(inscription: Inscription, selectedSignId: string | null): string {
   const wordsMarkup = inscription.words
     .map((word) => {
-      const signsMarkup = word.map(renderSign).join("");
+      const signsMarkup = word.map((signId) => renderSign(signId, signId === selectedSignId)).join("");
       return `<span class="word" aria-label="word">${signsMarkup}</span>`;
     })
     .join("");
@@ -53,7 +55,7 @@ function renderInscription(inscription: Inscription): string {
 }
 
 export function renderApp(state: AppState): string {
-  const corpusMarkup = corpus.map(renderInscription).join("");
+  const corpusMarkup = corpus.map((inscription) => renderInscription(inscription, state.selectedSignId)).join("");
 
   return `
     <main class="app-shell" aria-label="Decipherment alpha layout">
