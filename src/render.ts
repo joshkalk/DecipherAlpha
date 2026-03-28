@@ -1,24 +1,64 @@
 import { corpus } from "./data";
-import type { AppState } from "./types";
+import type { AppState, Inscription } from "./types";
+
+const glyphModules = import.meta.glob<string>("./assets/Glyphs/*.png", {
+  eager: true,
+  import: "default",
+});
+
+const signImageById: Record<string, string> = Object.fromEntries(
+  Object.entries(glyphModules)
+    .map(([path, url]) => {
+      const filename = path.split("/").pop();
+      if (!filename) {
+        return null;
+      }
+
+      const signId = filename.replace(/\.png$/i, "");
+      return [signId, url] as const;
+    })
+    .filter((entry): entry is readonly [string, string] => entry !== null),
+);
+
+function signImagePath(signId: string): string {
+  return signImageById[signId] ?? "";
+}
+
+function renderInscription(inscription: Inscription): string {
+  const wordsMarkup = inscription.words
+    .map((word) => {
+      const signsMarkup = word
+        .map(
+          (signId) =>
+            `<img class="sign" src="${signImagePath(signId)}" alt="${signId}" loading="lazy" decoding="async" />`,
+        )
+        .join("");
+
+      return `<span class="word" aria-label="word">${signsMarkup}</span>`;
+    })
+    .join("");
+
+  return `
+    <article class="inscription-row" aria-label="Inscription ${inscription.id}">
+      <span class="inscription-id">${inscription.id}</span>
+      <div class="inscription-words">${wordsMarkup}</div>
+    </article>
+  `;
+}
 
 export function renderApp(state: AppState): string {
-  const firstIds = corpus
-    .slice(0, 6)
-    .map((inscription) => inscription.id)
-    .join(", ");
+  const corpusMarkup = corpus.map(renderInscription).join("");
 
   return `
     <main class="app-shell" aria-label="Decipherment alpha layout">
       <section class="pane pane-corpus" aria-labelledby="corpus-heading">
         <header class="pane-header">
           <h1 id="corpus-heading">Corpus</h1>
-          <p class="muted">Left pane reserved for inscription content.</p>
+          <p class="muted">${corpus.length} inscriptions</p>
         </header>
 
-        <div class="pane-body">
-          <p>This is a static scaffold only. Symbol rendering is not wired yet.</p>
-          <p>Total inscriptions loaded: <strong>${corpus.length}</strong></p>
-          <p class="muted">Example rows: ${firstIds}</p>
+        <div class="pane-body pane-body-corpus">
+          ${corpusMarkup}
         </div>
       </section>
 
