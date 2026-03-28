@@ -13,4 +13,8 @@ export type RightPaneTab = "tools" | "hypothesis" | "lexicon";
 export type AppState = {
   selectedTab: RightPaneTab;
   selectedSignId: string | null;
+  // Map of CV cell ids to sign ids, e.g. { "N-E": "sign1", "M-O": "sign2" }
+  syllabicMap: Record<string, string>;
+  // Map of sign ids to guessed lexicon words for logogram hypotheses.
+  logogramGuesses: Record<string, string>;
 };

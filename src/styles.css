@@ -303,6 +303,231 @@ p {
   padding: 0.4rem 0.5rem;
 }
 
+/* Selected sign header for Hypothesis tab */
+.selected-sign-header {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fdfdfd;
+  margin-bottom: 1rem;
+}
+
+.selected-sign-header h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.selected-sign-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  margin-bottom: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.selected-sign-placeholder {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.selected-sign-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.selected-sign-image-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.75rem;
+  color: #d1d5db;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.selected-sign-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #374151;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.clear-syllabic-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.4rem;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 100ms ease-out;
+}
+
+.clear-syllabic-btn:hover {
+  background: #e5e7eb;
+}
+
+/* CV Grid */
+.cv-grid-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fdfdfd;
+}
+
+.cv-grid-header {
+  display: grid;
+  grid-template-columns: 3rem repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cv-corner {
+  /* Empty space for row headers alignment */
+}
+
+.cv-col-header {
+  text-align: center;
+  font-weight: 600;
+  color: #111827;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+.cv-row {
+  display: grid;
+  grid-template-columns: 3rem repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cv-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.9rem;
+}
+
+.cv-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 70px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 100ms ease-out;
+  overflow: hidden;
+}
+
+.cv-cell:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.cv-cell-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.cv-cell-label {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 0.65rem;
+  color: #9ca3af;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0 2px;
+}
+
+.logogram-guess-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fdfdfd;
+}
+
+.logogram-guess-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.logogram-guess-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+}
+
+.logogram-guess-select:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.logogram-guess-list {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.logogram-guess-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.logogram-guess-sign {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.logogram-guess-word {
+  font-size: 0.95rem;
+  color: #111827;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;

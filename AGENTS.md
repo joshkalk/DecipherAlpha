@@ -30,7 +30,7 @@ Expected files:
 - `events.ts`
 
 ## Data assumptions
-- Sign ids match PNG filenames in `public/symbols`.
+- Sign ids match PNG filenames in `src/assets/Glyphs`.
 - The corpus shape is:
 
 ```ts
