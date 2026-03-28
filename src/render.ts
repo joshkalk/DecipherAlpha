@@ -20,20 +20,24 @@ const signImageById: Record<string, string> = Object.fromEntries(
     .filter((entry): entry is readonly [string, string] => entry !== null),
 );
 
-function signImagePath(signId: string): string {
-  return signImageById[signId] ?? "";
+function signImagePath(signId: string): string | null {
+  return signImageById[signId] ?? null;
+}
+
+function renderSign(signId: string): string {
+  const imagePath = signImagePath(signId);
+  if (!imagePath) {
+    // Fallback text keeps corpus rows readable if an unexpected sign id appears.
+    return `<span class="sign sign-missing" aria-label="missing sign ${signId}">${signId}</span>`;
+  }
+
+  return `<img class="sign" src="${imagePath}" alt="${signId}" loading="lazy" decoding="async" />`;
 }
 
 function renderInscription(inscription: Inscription): string {
   const wordsMarkup = inscription.words
     .map((word) => {
-      const signsMarkup = word
-        .map(
-          (signId) =>
-            `<img class="sign" src="${signImagePath(signId)}" alt="${signId}" loading="lazy" decoding="async" />`,
-        )
-        .join("");
-
+      const signsMarkup = word.map(renderSign).join("");
       return `<span class="word" aria-label="word">${signsMarkup}</span>`;
     })
     .join("");
