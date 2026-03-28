@@ -54,6 +54,7 @@ body {
   display: grid;
   gap: 0.5rem;
   padding-right: 0.25rem;
+  grid-auto-rows: min-content;
 }
 
 .pane-header {
@@ -231,6 +232,75 @@ p {
   font-weight: 500;
   color: #374151;
   background: #fcfcfd;
+}
+
+.tools-section {
+  margin-bottom: 1.5rem;
+}
+
+.tools-section h3 {
+  margin-bottom: 0.7rem;
+}
+
+.sign-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 60px);
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.frequency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.frequency-table th,
+.frequency-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.frequency-table th {
+  background: #e5e7eb;
+  font-weight: 700;
+  border-top: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.frequency-table tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.freq-col-rank {
+  width: 3rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.freq-col-count {
+  width: 3rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #374151;
+}
+
+/* Sign cell in frequency tables: contains an img or span */
+.freq-col-sign {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.freq-col-bigram {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.5rem;
 }
 
 @media (max-width: 900px) {
