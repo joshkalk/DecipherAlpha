@@ -296,6 +296,139 @@ function renderBigramFrequency(selectedSignId: string | null): string {
   `;
 }
 
+function renderSelectedSignHeader(
+  selectedSignId: string | null,
+  syllabicMap: Record<string, string>,
+  logogramGuesses: Record<string, string>,
+): string {
+  if (!selectedSignId) {
+    return `
+      <div class="selected-sign-header">
+        <h3>Selected sign</h3>
+        <div class="selected-sign-display">
+          <div class="selected-sign-placeholder"></div>
+        </div>
+        <p class="selected-sign-status">No sign selected</p>
+      </div>
+    `;
+  }
+
+  const imagePath = signImagePath(selectedSignId);
+  const imageMarkup = imagePath
+    ? `<img class="selected-sign-image" src="${imagePath}" alt="${selectedSignId}" />`
+    : `<span class="selected-sign-image-missing">${selectedSignId}</span>`;
+
+  let status = "No guess";
+  for (const [cellId, signId] of Object.entries(syllabicMap)) {
+    if (signId === selectedSignId) {
+      status = `Syllabic: ${cellId}`;
+      break;
+    }
+  }
+
+  const logogramGuess = logogramGuesses[selectedSignId];
+  if (logogramGuess) {
+    status = `Logogram: ${logogramGuess}`;
+  }
+
+  return `
+    <div class="selected-sign-header">
+      <h3>Selected sign</h3>
+      <div class="selected-sign-display">
+        ${imageMarkup}
+      </div>
+      <p class="selected-sign-status">${status}</p>
+      <button class="clear-syllabic-btn" type="button" data-action="clear-hypothesis">Clear assignment</button>
+    </div>
+  `;
+}
+
+function renderCVGrid(syllabicMap: Record<string, string>): string {
+  const rows = ["N", "M", "D", "K"];
+  const cols = ["E", "O", "A"];
+
+  // Build column header with labels
+  const colHeaders = cols.map((col) => `<div class="cv-col-header">${col}</div>`).join("");
+
+  // Build grid cells
+  const cellRows = rows
+    .map((row) => {
+      const cells = cols
+        .map((col) => {
+          const cellId = `${row}-${col}`;
+          const assignedSign = syllabicMap[cellId];
+          const imageMarkup = assignedSign
+            ? `<img class="cv-cell-image" src="${signImagePath(assignedSign)}" alt="${cellId}" />`
+            : "";
+
+          return `<div class="cv-cell" data-cv-cell="${cellId}">${imageMarkup}<span class="cv-cell-label">${cellId}</span></div>`;
+        })
+        .join("");
+
+      return `
+        <div class="cv-row">
+          <div class="cv-row-header">${row}</div>
+          ${cells}
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="cv-grid-container">
+      <div class="cv-grid-header">
+        <div class="cv-corner"></div>
+        ${colHeaders}
+      </div>
+      ${cellRows}
+    </div>
+  `;
+}
+
+function renderLogogramGuessSection(
+  selectedSignId: string | null,
+  logogramGuesses: Record<string, string>,
+): string {
+  const selectedWord = selectedSignId ? (logogramGuesses[selectedSignId] ?? "") : "";
+  const options = lexicon
+    .map((entry) => {
+      const isSelected = entry.english === selectedWord ? ' selected' : "";
+      return `<option value="${entry.english}"${isSelected}>${entry.english}</option>`;
+    })
+    .join("");
+  const guessRows = Object.entries(logogramGuesses)
+    .sort(([leftSignId], [rightSignId]) => leftSignId.localeCompare(rightSignId))
+    .map(([signId, word]) => {
+      const isHighlighted = signId === selectedSignId;
+      return `
+        <div class="logogram-guess-item">
+          <div class="logogram-guess-sign">${renderSign(signId, isHighlighted)}</div>
+          <span class="logogram-guess-word">${word}</span>
+        </div>
+      `;
+    })
+    .join("");
+  const guessesMarkup = guessRows
+    ? `<div class="logogram-guess-list" aria-label="Active logogram guesses">${guessRows}</div>`
+    : "";
+
+  return `
+    <div class="logogram-guess-section">
+      <label class="logogram-guess-label" for="logogram-guess-select">Logogram guess</label>
+      <select
+        id="logogram-guess-select"
+        class="logogram-guess-select"
+        data-logogram-select
+        ${selectedSignId ? "" : "disabled"}
+      >
+        <option value="">-- no guess --</option>
+        ${options}
+      </select>
+      ${guessesMarkup}
+    </div>
+  `;
+}
+
 function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: boolean): string {
   const label = tabName.charAt(0).toUpperCase() + tabName.slice(1);
   const activeClass = isActive ? " is-active" : "";
@@ -344,8 +477,9 @@ export function renderApp(state: AppState): string {
           </section>
 
           <section class="panel${hypothesisActive ? " is-active" : ""}" aria-label="Hypothesis panel"${hypothesisActive ? ' role="tabpanel"' : ""}>
-            <h3>Hypothesis</h3>
-            <p>Placeholder for candidate mappings and notes.</p>
+            ${renderSelectedSignHeader(state.selectedSignId, state.syllabicMap, state.logogramGuesses)}
+            ${renderCVGrid(state.syllabicMap)}
+            ${renderLogogramGuessSection(state.selectedSignId, state.logogramGuesses)}
           </section>
 
           <section class="panel${lexiconActive ? " is-active" : ""}" aria-label="Lexicon panel"${lexiconActive ? ' role="tabpanel"' : ""}>
