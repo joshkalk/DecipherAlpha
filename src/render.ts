@@ -82,6 +82,220 @@ function renderLexicon(): string {
   `;
 }
 
+// Extract all unique signs from corpus, sorted alphabetically
+function getAllSigns(): string[] {
+  const signs = new Set<string>();
+  corpus.forEach((inscription) => {
+    inscription.words.forEach((word) => {
+      word.forEach((signId) => {
+        signs.add(signId);
+      });
+    });
+  });
+  return Array.from(signs).sort();
+}
+
+// Get all signs as a flat stream for an inscription
+function getSignStream(inscription: Inscription): string[] {
+  return inscription.words.flat();
+}
+
+// Count occurrences of each sign at each position (first/middle/last)
+function getPositionalFrequency(): Record<string, { first: number; middle: number; last: number }> {
+  const freq: Record<string, { first: number; middle: number; last: number }> = {};
+
+  getAllSigns().forEach((sign) => {
+    freq[sign] = { first: 0, middle: 0, last: 0 };
+  });
+
+  corpus.forEach((inscription) => {
+    const stream = getSignStream(inscription);
+    if (stream.length === 0) return;
+
+    const firstSign = stream[0];
+    const lastSign = stream[stream.length - 1];
+
+    freq[firstSign].first++;
+    freq[lastSign].last++;
+
+    // All middle signs (everything except first and last, or if only 1 sign, it's just first)
+    for (let i = 1; i < stream.length - 1; i++) {
+      freq[stream[i]].middle++;
+    }
+  });
+
+  return freq;
+}
+
+// Count unigram occurrences
+function getUnigramFrequency(): Array<{ sign: string; count: number }> {
+  const freq: Record<string, number> = {};
+
+  corpus.forEach((inscription) => {
+    getSignStream(inscription).forEach((sign) => {
+      freq[sign] = (freq[sign] ?? 0) + 1;
+    });
+  });
+
+  return Object.entries(freq)
+    .map(([sign, count]) => ({ sign, count }))
+    .sort((a, b) => {
+      // Sort by count descending, then alphabetically
+      if (b.count !== a.count) return b.count - a.count;
+      return a.sign.localeCompare(b.sign);
+    });
+}
+
+// Count bigrams (adjacent sign pairs)
+function getBigramFrequency(): Array<{ left: string; right: string; count: number }> {
+  const freq: Record<string, number> = {};
+
+  corpus.forEach((inscription) => {
+    const stream = getSignStream(inscription);
+    for (let i = 0; i < stream.length - 1; i++) {
+      const key = `${stream[i]}|${stream[i + 1]}`;
+      freq[key] = (freq[key] ?? 0) + 1;
+    }
+  });
+
+  return Object.entries(freq)
+    .map(([key, count]) => {
+      const [left, right] = key.split("|");
+      return { left, right, count };
+    })
+    .sort((a, b) => {
+      // Sort by count descending, then alphabetically
+      if (b.count !== a.count) return b.count - a.count;
+      if (a.left !== b.left) return a.left.localeCompare(b.left);
+      return a.right.localeCompare(b.right);
+    });
+}
+
+function renderSignInventory(selectedSignId: string | null): string {
+  const signs = getAllSigns();
+  const signsMarkup = signs
+    .map((sign) => {
+      const isHighlighted = sign === selectedSignId;
+      return renderSign(sign, isHighlighted);
+    })
+    .join("");
+
+  return `
+    <div class="tools-section">
+      <h3>Sign Inventory</h3>
+      <div class="sign-inventory-grid">
+        ${signsMarkup}
+      </div>
+    </div>
+  `;
+}
+
+function renderUnigramFrequency(selectedSignId: string | null): string {
+  const unigrams = getUnigramFrequency();
+  const rows = unigrams
+    .map((entry, index) => {
+      const isHighlighted = entry.sign === selectedSignId;
+      return `
+      <tr>
+        <td class="freq-col-rank">${index + 1}</td>
+        <td class="freq-col-sign">${renderSign(entry.sign, isHighlighted)}</td>
+        <td class="freq-col-count">${entry.count}</td>
+      </tr>
+    `;
+    })
+    .join("");
+
+  return `
+    <div class="tools-section">
+      <h3>Unigram Frequency</h3>
+      <table class="frequency-table">
+        <thead>
+          <tr>
+            <th class="freq-col-rank">Rank</th>
+            <th class="freq-col-sign">Sign</th>
+            <th class="freq-col-count">Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPositionalFrequency(selectedSignId: string | null): string {
+  const positional = getPositionalFrequency();
+  const signs = getAllSigns();
+
+  const rows = signs
+    .map((sign) => {
+      const isHighlighted = sign === selectedSignId;
+      const counts = positional[sign];
+      return `
+      <tr>
+        <td class="freq-col-sign">${renderSign(sign, isHighlighted)}</td>
+        <td class="freq-col-count">${counts.first}</td>
+        <td class="freq-col-count">${counts.middle}</td>
+        <td class="freq-col-count">${counts.last}</td>
+      </tr>
+    `;
+    })
+    .join("");
+
+  return `
+    <div class="tools-section">
+      <h3>Positional Frequency</h3>
+      <table class="frequency-table">
+        <thead>
+          <tr>
+            <th class="freq-col-sign">Sign</th>
+            <th class="freq-col-count">First</th>
+            <th class="freq-col-count">Middle</th>
+            <th class="freq-col-count">Last</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderBigramFrequency(selectedSignId: string | null): string {
+  const bigrams = getBigramFrequency();
+  const rows = bigrams
+    .map((entry) => {
+      const leftHighlighted = entry.left === selectedSignId;
+      const rightHighlighted = entry.right === selectedSignId;
+      return `
+      <tr>
+        <td class="freq-col-bigram">${renderSign(entry.left, leftHighlighted)}${renderSign(entry.right, rightHighlighted)}</td>
+        <td class="freq-col-count">${entry.count}</td>
+      </tr>
+    `;
+    })
+    .join("");
+
+  return `
+    <div class="tools-section">
+      <h3>Bigram Frequency</h3>
+      <table class="frequency-table">
+        <thead>
+          <tr>
+            <th class="freq-col-bigram">Bigram</th>
+            <th class="freq-col-count">Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: boolean): string {
   const label = tabName.charAt(0).toUpperCase() + tabName.slice(1);
   const activeClass = isActive ? " is-active" : "";
@@ -123,8 +337,10 @@ export function renderApp(state: AppState): string {
 
         <div class="tab-panels">
           <section class="panel${toolsActive ? " is-active" : ""}" aria-label="Tools panel"${toolsActive ? ' role="tabpanel"' : ""}>
-            <h3>Tools</h3>
-            <p>Placeholder for filters, inspectors, and utility controls.</p>
+            ${renderSignInventory(state.selectedSignId)}
+            ${renderUnigramFrequency(state.selectedSignId)}
+            ${renderPositionalFrequency(state.selectedSignId)}
+            ${renderBigramFrequency(state.selectedSignId)}
           </section>
 
           <section class="panel${hypothesisActive ? " is-active" : ""}" aria-label="Hypothesis panel"${hypothesisActive ? ' role="tabpanel"' : ""}>
