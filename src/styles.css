@@ -124,6 +124,24 @@ p {
   image-rendering: auto;
 }
 
+
+.word + .word {
+  margin-left: 0.1rem;
+}
+
+.sign-missing {
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.2rem;
+  font-size: 0.62rem;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  color: #6b7280;
+}
+
 .tab-row {
   display: flex;
   gap: 0.5rem;
