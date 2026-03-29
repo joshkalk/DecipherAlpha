@@ -1,7 +1,7 @@
 import type { AppState } from "./types";
 
 export const initialState: AppState = {
-  selectedTab: "tools",
+  selectedTab: "instructions",
   selectedSignId: null,
   syllabicMap: {},
   logogramGuesses: {},

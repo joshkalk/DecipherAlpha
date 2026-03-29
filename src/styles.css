@@ -110,6 +110,12 @@ h3 {
   margin-bottom: 0.35rem;
 }
 
+h4 {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #111827;
+}
+
 p {
   margin: 0.4rem 0;
 }
@@ -340,6 +346,30 @@ p {
   display: block;
 }
 
+.instructions-panel {
+  padding: 0.25rem 0;
+}
+
+.instructions-section + .instructions-section {
+  margin-top: 1rem;
+}
+
+.instructions-section p {
+  margin-top: 0.35rem;
+}
+
+.instructions-list {
+  margin: 0.45rem 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  color: #374151;
+}
+
+.instructions-list-numbered {
+  padding-left: 1.35rem;
+}
+
 .lexicon-table {
   width: 100%;
   border-collapse: collapse;
@@ -546,7 +576,12 @@ p {
 }
 
 .cv-corner {
-  /* Empty space for row headers alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.9rem;
 }
 
 .cv-col-header {
