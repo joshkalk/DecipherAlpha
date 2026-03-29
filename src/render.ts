@@ -39,9 +39,10 @@ function renderSign(signId: string, isHighlighted: boolean): string {
 
 function renderInscription(inscription: Inscription, selectedSignId: string | null): string {
   const wordsMarkup = inscription.words
-    .map((word) => {
+    .map((word, index) => {
       const signsMarkup = word.map((signId) => renderSign(signId, signId === selectedSignId)).join("");
-      return `<span class="word" aria-label="word">${signsMarkup}</span>`;
+      const separatorMarkup = index === 0 ? "" : `<span class="word-separator" aria-hidden="true"></span>`;
+      return `${separatorMarkup}<span class="word" aria-label="word">${signsMarkup}</span>`;
     })
     .join("");
 
