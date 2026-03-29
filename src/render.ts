@@ -165,7 +165,7 @@ function renderLexicon(): string {
   `;
 }
 
-// Extract all unique signs from corpus, sorted alphabetically
+// Extract all unique signs from corpus in first-appearance order.
 function getAllSigns(): string[] {
   const signs = new Set<string>();
   corpus.forEach((inscription) => {
@@ -175,7 +175,7 @@ function getAllSigns(): string[] {
       });
     });
   });
-  return Array.from(signs).sort();
+  return Array.from(signs);
 }
 
 // Get all signs as a flat stream for an inscription
@@ -433,7 +433,7 @@ function renderInstructions(): string {
 
       <div class="instructions-section">
         <h4>Goal</h4>
-        <p>Decipher the 20 symbols in this writing system.</p>
+        <p>Decipher the 20 symbols of the Yot writing system.</p>
       </div>
 
       <div class="instructions-section">
@@ -451,7 +451,7 @@ function renderInstructions(): string {
       <div class="instructions-section">
         <h4>How to Play</h4>
         <ol class="instructions-list instructions-list-numbered">
-          <li>Click a symbol in the corpus or in the Tools tab.</li>
+          <li>Click a symbol in the corpus or in the Tools tab to highlight it.</li>
           <li>Look for where it repeats.</li>
           <li>Use the Tools tab to study how often it appears, where it appears, and which symbols appear next to it.</li>
           <li>Go to the Hypothesis tab.</li>
@@ -465,6 +465,7 @@ function renderInstructions(): string {
       <div class="instructions-section">
         <h4>Useful reminders</h4>
         <ul class="instructions-list">
+          <li>Vertical lines separate words in the corpus</li>
           <li>This script mixes logograms and syllabic signs</li>
           <li>Not every word in the lexicon is used in the corpus</li>
           <li>You can change your guesses at any time</li>
@@ -581,8 +582,7 @@ function renderCorpusHeader(correctCount: number): string {
   return `
     <header class="pane-header pane-header-corpus">
       <div class="pane-header-copy">
-        <h1 id="corpus-heading">Corpus</h1>
-        <p class="muted">${corpus.length} inscriptions</p>
+        <h1 id="corpus-heading">Yot Corpus</h1>
       </div>
       <div class="corpus-banner"${bannerText ? "" : ' aria-hidden="true"'}>
         ${bannerText}
