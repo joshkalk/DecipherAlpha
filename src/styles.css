@@ -1,3 +1,8 @@
+html,
+body {
+  height: 100%;
+}
+
 :root {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   color: #1f2937;
@@ -11,19 +16,23 @@
 
 body {
   margin: 0;
+  overflow: hidden;
 }
 
 #app {
-  min-height: 100vh;
+  height: 100vh;
   padding: 0.5rem;
+  overflow: hidden;
 }
 
 .app-shell {
   max-width: 1100px;
+  height: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 2.0fr 1fr;
   gap: 0.5rem;
+  min-height: 0;
 }
 
 .pane {
@@ -31,17 +40,17 @@ body {
   border: 1px solid #d1d5db;
   border-radius: 10px;
   padding: 1rem;
+  min-height: 0;
 }
 
 .pane-corpus {
   display: flex;
   flex-direction: column;
-  min-height: 78vh;
 }
 
 .pane-workbench {
-  position: sticky;
-  top: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pane-body {
@@ -51,6 +60,7 @@ body {
 .pane-body-corpus {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: 0.5rem;
   padding-right: 0.25rem;
@@ -182,9 +192,12 @@ p {
 }
 
 .tab-panels {
+  flex: 1;
+  min-height: 0;
   display: grid;
   gap: 0.75rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-right: 0.25rem;
 }
 
@@ -529,15 +542,30 @@ p {
 }
 
 @media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+
+  #app {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .pane-corpus {
-    min-height: auto;
+    min-height: 0;
   }
 
   .pane-body-corpus {
+    max-height: 55vh;
+  }
+
+  .tab-panels {
     max-height: 55vh;
   }
 }
