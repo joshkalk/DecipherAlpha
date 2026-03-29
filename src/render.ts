@@ -426,6 +426,55 @@ function renderSelectedSignHeader(
   `;
 }
 
+function renderInstructions(): string {
+  return `
+    <div class="instructions-panel">
+      <h3>Instructions</h3>
+
+      <div class="instructions-section">
+        <h4>Goal</h4>
+        <p>Decipher the 20 symbols in this writing system.</p>
+      </div>
+
+      <div class="instructions-section">
+        <h4>What you are looking at</h4>
+        <ul class="instructions-list">
+          <li><strong>Corpus:</strong> the full set of inscriptions you are trying to decipher</li>
+          <li><strong>Logogram:</strong> one symbol that stands for a whole word</li>
+          <li><strong>Syllabic sign:</strong> one symbol that stands for a syllable</li>
+          <li><strong>CV grid:</strong> a chart where you assign a symbol to a consonant-vowel syllable such as NE or DO</li>
+          <li><strong>Unigram:</strong> a single symbol counted across the corpus</li>
+          <li><strong>Bigram:</strong> a pair of neighboring symbols counted across the corpus</li>
+        </ul>
+      </div>
+
+      <div class="instructions-section">
+        <h4>How to Play</h4>
+        <ol class="instructions-list instructions-list-numbered">
+          <li>Click a symbol in the corpus or in the Tools tab.</li>
+          <li>Look for where it repeats.</li>
+          <li>Use the Tools tab to study how often it appears, where it appears, and which symbols appear next to it.</li>
+          <li>Go to the Hypothesis tab.</li>
+          <li>If you think the symbol is syllabic, place it in the CV grid.</li>
+          <li>If you think the symbol is a logogram, choose a word from the dropdown.</li>
+          <li>Watch the corpus update with your current guesses.</li>
+          <li>Revise your guesses as you learn more.</li>
+        </ol>
+      </div>
+
+      <div class="instructions-section">
+        <h4>Useful reminders</h4>
+        <ul class="instructions-list">
+          <li>This script mixes logograms and syllabic signs</li>
+          <li>Not every word in the lexicon is used in the corpus</li>
+          <li>You can change your guesses at any time</li>
+          <li>The puzzle is solved when all 20 symbols are correctly identified</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
 function renderCVGrid(syllabicMap: Record<string, string>): string {
   const rows = ["N", "M", "D", "K"];
   const cols = ["E", "O", "A"];
@@ -460,7 +509,7 @@ function renderCVGrid(syllabicMap: Record<string, string>): string {
   return `
     <div class="cv-grid-container">
       <div class="cv-grid-header">
-        <div class="cv-corner"></div>
+        <div class="cv-corner">CV</div>
         ${colHeaders}
       </div>
       ${cellRows}
@@ -512,7 +561,7 @@ function renderLogogramGuessSection(
   `;
 }
 
-function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: boolean): string {
+function renderTabButton(tabName: "instructions" | "hypothesis" | "tools" | "lexicon", isActive: boolean): string {
   const label = tabName.charAt(0).toUpperCase() + tabName.slice(1);
   const activeClass = isActive ? " is-active" : "";
   const ariaAttr = isActive ? ' aria-current="page"' : "";
@@ -557,6 +606,7 @@ export function renderApp(state: AppState): string {
     )
     .join("");
 
+  const instructionsActive = state.selectedTab === "instructions";
   const toolsActive = state.selectedTab === "tools";
   const hypothesisActive = state.selectedTab === "hypothesis";
   const lexiconActive = state.selectedTab === "lexicon";
@@ -577,23 +627,28 @@ export function renderApp(state: AppState): string {
         </header>
 
         <nav class="tab-row" aria-label="Workbench tabs">
-          ${renderTabButton("tools", toolsActive)}
+          ${renderTabButton("instructions", instructionsActive)}
           ${renderTabButton("hypothesis", hypothesisActive)}
+          ${renderTabButton("tools", toolsActive)}
           ${renderTabButton("lexicon", lexiconActive)}
         </nav>
 
         <div class="tab-panels">
-          <section class="panel${toolsActive ? " is-active" : ""}" aria-label="Tools panel"${toolsActive ? ' role="tabpanel"' : ""}>
-            ${renderSignInventory(selectedSignId)}
-            ${renderUnigramFrequency(selectedSignId)}
-            ${renderPositionalFrequency(selectedSignId)}
-            ${renderBigramFrequency(selectedSignId)}
+          <section class="panel${instructionsActive ? " is-active" : ""}" aria-label="Instructions panel"${instructionsActive ? ' role="tabpanel"' : ""}>
+            ${renderInstructions()}
           </section>
 
           <section class="panel${hypothesisActive ? " is-active" : ""}" aria-label="Hypothesis panel"${hypothesisActive ? ' role="tabpanel"' : ""}>
             ${renderSelectedSignHeader(selectedSignId, state.syllabicMap, state.logogramGuesses)}
             ${renderCVGrid(state.syllabicMap)}
             ${renderLogogramGuessSection(selectedSignId, state.logogramGuesses)}
+          </section>
+
+          <section class="panel${toolsActive ? " is-active" : ""}" aria-label="Tools panel"${toolsActive ? ' role="tabpanel"' : ""}>
+            ${renderSignInventory(selectedSignId)}
+            ${renderUnigramFrequency(selectedSignId)}
+            ${renderPositionalFrequency(selectedSignId)}
+            ${renderBigramFrequency(selectedSignId)}
           </section>
 
           <section class="panel${lexiconActive ? " is-active" : ""}" aria-label="Lexicon panel"${lexiconActive ? ' role="tabpanel"' : ""}>

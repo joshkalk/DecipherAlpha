@@ -8,7 +8,7 @@ export type LexiconEntry = {
   yot: string;
 };
 
-export type RightPaneTab = "tools" | "hypothesis" | "lexicon";
+export type RightPaneTab = "instructions" | "hypothesis" | "tools" | "lexicon";
 
 export type AppState = {
   selectedTab: RightPaneTab;
