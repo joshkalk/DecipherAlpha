@@ -30,7 +30,7 @@ body {
   height: 100%;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 2.6fr 1fr;
+  grid-template-columns: 2.8fr 1fr;
   gap: 0.5rem;
   min-height: 0;
 }
@@ -71,6 +71,26 @@ body {
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.pane-header-corpus {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pane-header-copy {
+  min-width: 0;
+}
+
+.corpus-banner {
+  min-height: 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
+  white-space: nowrap;
 }
 
 h1,
@@ -224,6 +244,26 @@ p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.pane-corpus.is-solved .corpus-word-reading,
+.pane-corpus.is-solved .corpus-word-english {
+  color: #111827;
+  font-weight: 700;
+}
+
+.pane-corpus.is-solved .corpus-banner {
+  color: #111827;
+  font-weight: 700;
+  font-size: 1.275rem;
+}
+
+.app-shell.is-solved .sign {
+  cursor: default;
+}
+
+.app-shell.is-solved .sign:hover {
+  filter: none;
 }
 
 .sign {

@@ -14,7 +14,23 @@ const appRoot = root;
 let state = { ...initialState };
 
 function render(): void {
+  const corpusScrollTop =
+    appRoot.querySelector<HTMLElement>(".pane-body-corpus")?.scrollTop ?? 0;
+  const workbenchScrollTop =
+    appRoot.querySelector<HTMLElement>(".tab-panels")?.scrollTop ?? 0;
+
   appRoot.innerHTML = renderApp(state);
+
+  const corpusPane = appRoot.querySelector<HTMLElement>(".pane-body-corpus");
+  const workbenchPane = appRoot.querySelector<HTMLElement>(".tab-panels");
+
+  if (corpusPane) {
+    corpusPane.scrollTop = corpusScrollTop;
+  }
+
+  if (workbenchPane) {
+    workbenchPane.scrollTop = workbenchScrollTop;
+  }
 }
 
 setupEvents(appRoot, state, render);

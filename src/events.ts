@@ -1,3 +1,4 @@
+import { isSolved } from "./data";
 import type { AppState, RightPaneTab } from "./types";
 
 export function setupEvents(
@@ -19,6 +20,7 @@ export function setupEvents(
 
   root.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
+    const solved = isSolved(state);
 
     // Handle tab switching
     const tabButton = target.closest("[data-tab]");
@@ -28,6 +30,10 @@ export function setupEvents(
         state.selectedTab = tabName;
         render();
       }
+      return;
+    }
+
+    if (solved) {
       return;
     }
 
@@ -81,6 +87,10 @@ export function setupEvents(
   });
 
   root.addEventListener("change", (event) => {
+    if (isSolved(state)) {
+      return;
+    }
+
     const target = event.target;
     if (!(target instanceof HTMLSelectElement) || !target.matches("[data-logogram-select]")) {
       return;
