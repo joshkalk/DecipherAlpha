@@ -37,12 +37,87 @@ function renderSign(signId: string, isHighlighted: boolean): string {
   return `<img class="sign${highlightClass}" data-sign-id="${signId}" src="${imagePath}" alt="${signId}" loading="lazy" decoding="async" />`;
 }
 
-function renderInscription(inscription: Inscription, selectedSignId: string | null): string {
+function getSyllabicCellForSign(signId: string, syllabicMap: Record<string, string>): string | null {
+  for (const [cellId, mappedSignId] of Object.entries(syllabicMap)) {
+    if (mappedSignId === signId) {
+      return cellId;
+    }
+  }
+
+  return null;
+}
+
+function getEnglishForReading(reading: string): string {
+  const entry = lexicon.find((item) => item.yot === reading);
+  return entry?.english ?? "";
+}
+
+function getLexiconEntryForEnglish(english: string) {
+  return lexicon.find((item) => item.english === english) ?? null;
+}
+
+function getSyllabicReadingParts(
+  word: string[],
+  syllabicMap: Record<string, string>,
+): string[] {
+  return word.map((signId) => {
+    const cellId = getSyllabicCellForSign(signId, syllabicMap);
+    return cellId ? cellId.replace("-", "") : "";
+  });
+}
+
+function renderSyllabicLine(parts: string[]): string {
+  const slotsMarkup = parts
+    .map((part, index) => {
+      const separator = index === 0 || !parts[index - 1] || !part ? "" : "-";
+      return `
+        ${index === 0 ? "" : `<span class="corpus-word-reading-separator">${separator}</span>`}
+        <span class="corpus-word-reading-slot">${part}</span>
+      `;
+    })
+    .join("");
+
+  return `<span class="corpus-word-reading">${slotsMarkup}</span>`;
+}
+
+function renderCorpusWord(
+  word: string[],
+  selectedSignId: string | null,
+  syllabicMap: Record<string, string>,
+  logogramGuesses: Record<string, string>,
+): string {
+  const glyphsMarkup = word
+    .map((signId) => renderSign(signId, signId === selectedSignId))
+    .join("");
+  const readingParts = getSyllabicReadingParts(word, syllabicMap);
+  const fullReading = readingParts.every(Boolean) ? readingParts.join("-") : "";
+  const englishFromReading = fullReading ? getEnglishForReading(fullReading) : "";
+  const logogramGuess = word.length === 1 ? (logogramGuesses[word[0]] ?? "") : "";
+  const logogramEntry = logogramGuess ? getLexiconEntryForEnglish(logogramGuess) : null;
+  const englishLine = logogramGuess || englishFromReading;
+  const syllabicLine = logogramEntry
+    ? `<span class="corpus-word-reading corpus-word-reading-full">${logogramEntry.yot}</span>`
+    : renderSyllabicLine(readingParts);
+
+  return `
+    <span class="corpus-word-stack">
+      <span class="corpus-word-glyphs">${glyphsMarkup}</span>
+      ${syllabicLine}
+      <span class="corpus-word-english">${englishLine}</span>
+    </span>
+  `;
+}
+
+function renderInscription(
+  inscription: Inscription,
+  selectedSignId: string | null,
+  syllabicMap: Record<string, string>,
+  logogramGuesses: Record<string, string>,
+): string {
   const wordsMarkup = inscription.words
     .map((word, index) => {
-      const signsMarkup = word.map((signId) => renderSign(signId, signId === selectedSignId)).join("");
       const separatorMarkup = index === 0 ? "" : `<span class="word-separator" aria-hidden="true"></span>`;
-      return `${separatorMarkup}<span class="word" aria-label="word">${signsMarkup}</span>`;
+      return `${separatorMarkup}<span class="word" aria-label="word">${renderCorpusWord(word, selectedSignId, syllabicMap, logogramGuesses)}</span>`;
     })
     .join("");
 
@@ -51,7 +126,14 @@ function renderInscription(inscription: Inscription, selectedSignId: string | nu
   return `
     <article class="inscription-row" aria-label="Inscription ${inscription.id}">
       <span class="inscription-id">${displayId}</span>
-      <div class="inscription-words">${wordsMarkup}</div>
+      <div class="inscription-content">
+        <div class="inscription-labels" aria-hidden="true">
+          <span class="inscription-label inscription-label-script">Script</span>
+          <span class="inscription-label inscription-label-yot">Yot</span>
+          <span class="inscription-label inscription-label-english">English</span>
+        </div>
+        <div class="inscription-words">${wordsMarkup}</div>
+      </div>
     </article>
   `;
 }
@@ -439,7 +521,16 @@ function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: 
 }
 
 export function renderApp(state: AppState): string {
-  const corpusMarkup = corpus.map((inscription) => renderInscription(inscription, state.selectedSignId)).join("");
+  const corpusMarkup = corpus
+    .map((inscription) =>
+      renderInscription(
+        inscription,
+        state.selectedSignId,
+        state.syllabicMap,
+        state.logogramGuesses,
+      ),
+    )
+    .join("");
 
   const toolsActive = state.selectedTab === "tools";
   const hypothesisActive = state.selectedTab === "hypothesis";

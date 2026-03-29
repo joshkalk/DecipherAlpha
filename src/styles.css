@@ -30,7 +30,7 @@ body {
   height: 100%;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 2.0fr 1fr;
+  grid-template-columns: 2.6fr 1fr;
   gap: 0.5rem;
   min-height: 0;
 }
@@ -104,9 +104,9 @@ p {
 
 .inscription-row {
   display: grid;
-  grid-template-columns: 3.2rem 1fr;
+  grid-template-columns: 3.2rem auto 1fr;
   gap: 0.5rem;
-  align-items: start;
+  align-items: center;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 0.45rem 0.5rem;
@@ -117,29 +117,113 @@ p {
   font-size: 0.82rem;
   color: #6b7280;
   font-variant-numeric: tabular-nums;
-  padding-top: 0.2rem;
+  align-self: center;
+}
+
+.inscription-content {
+  display: contents;
+}
+
+.inscription-labels {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 0.12rem;
+}
+
+.inscription-label {
+  font-size: 0.68rem;
+  line-height: 1;
+  color: #9ca3af;
+}
+
+.inscription-label-script {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.inscription-label-yot,
+.inscription-label-english {
+  min-height: 0.9rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 .inscription-words {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   row-gap: 0.35rem;
   column-gap: 0.45rem;
 }
 
 .word {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.08rem;
 }
 
 .word-separator {
   width: 1px;
-  height: 34px;
+  align-self: stretch;
+  min-height: 54px;
   background: #cbd5e1;
   border-radius: 999px;
   flex-shrink: 0;
+}
+
+.corpus-word-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+}
+
+.corpus-word-glyphs {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.08rem;
+}
+
+.corpus-word-reading {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0.9rem;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: #6b7280;
+}
+
+.corpus-word-reading-full {
+  width: 100%;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.corpus-word-reading-slot {
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.corpus-word-reading-separator {
+  width: 0.45rem;
+  text-align: center;
+}
+
+.corpus-word-english {
+  width: 100%;
+  min-height: 0.9rem;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: #6b7280;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sign {
@@ -572,5 +656,9 @@ p {
 
   .tab-panels {
     max-height: 55vh;
+  }
+
+  .inscription-row {
+    grid-template-columns: 2.5rem auto 1fr;
   }
 }
