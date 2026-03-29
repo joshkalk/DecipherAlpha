@@ -1,4 +1,4 @@
-import { corpus, lexicon } from "./data";
+import { corpus, getCorrectCount, isSolved, lexicon, totalCorrectSigns } from "./data";
 import type { AppState, Inscription } from "./types";
 
 const glyphModules = import.meta.glob<string>("./assets/Glyphs/*.png", {
@@ -520,12 +520,37 @@ function renderTabButton(tabName: "tools" | "hypothesis" | "lexicon", isActive: 
   return `<button class="tab${activeClass}" type="button" data-tab="${tabName}"${ariaAttr}>${label}</button>`;
 }
 
+function renderCorpusHeader(correctCount: number): string {
+  let bannerText = "";
+
+  if (correctCount === totalCorrectSigns) {
+    bannerText = "Decipherment Complete!";
+  } else if (correctCount >= 16) {
+    bannerText = `You are close: ${correctCount} of ${totalCorrectSigns} correct`;
+  }
+
+  return `
+    <header class="pane-header pane-header-corpus">
+      <div class="pane-header-copy">
+        <h1 id="corpus-heading">Corpus</h1>
+        <p class="muted">${corpus.length} inscriptions</p>
+      </div>
+      <div class="corpus-banner"${bannerText ? "" : ' aria-hidden="true"'}>
+        ${bannerText}
+      </div>
+    </header>
+  `;
+}
+
 export function renderApp(state: AppState): string {
+  const correctCount = getCorrectCount(state);
+  const solved = isSolved(state);
+  const selectedSignId = solved ? null : state.selectedSignId;
   const corpusMarkup = corpus
     .map((inscription) =>
       renderInscription(
         inscription,
-        state.selectedSignId,
+        selectedSignId,
         state.syllabicMap,
         state.logogramGuesses,
       ),
@@ -537,12 +562,9 @@ export function renderApp(state: AppState): string {
   const lexiconActive = state.selectedTab === "lexicon";
 
   return `
-    <main class="app-shell" aria-label="Decipherment alpha layout">
-      <section class="pane pane-corpus" aria-labelledby="corpus-heading">
-        <header class="pane-header">
-          <h1 id="corpus-heading">Corpus</h1>
-          <p class="muted">${corpus.length} inscriptions</p>
-        </header>
+    <main class="app-shell${solved ? " is-solved" : ""}" aria-label="Decipherment alpha layout">
+      <section class="pane pane-corpus${solved ? " is-solved" : ""}" aria-labelledby="corpus-heading">
+        ${renderCorpusHeader(correctCount)}
 
         <div class="pane-body pane-body-corpus">
           ${corpusMarkup}
@@ -562,16 +584,16 @@ export function renderApp(state: AppState): string {
 
         <div class="tab-panels">
           <section class="panel${toolsActive ? " is-active" : ""}" aria-label="Tools panel"${toolsActive ? ' role="tabpanel"' : ""}>
-            ${renderSignInventory(state.selectedSignId)}
-            ${renderUnigramFrequency(state.selectedSignId)}
-            ${renderPositionalFrequency(state.selectedSignId)}
-            ${renderBigramFrequency(state.selectedSignId)}
+            ${renderSignInventory(selectedSignId)}
+            ${renderUnigramFrequency(selectedSignId)}
+            ${renderPositionalFrequency(selectedSignId)}
+            ${renderBigramFrequency(selectedSignId)}
           </section>
 
           <section class="panel${hypothesisActive ? " is-active" : ""}" aria-label="Hypothesis panel"${hypothesisActive ? ' role="tabpanel"' : ""}>
-            ${renderSelectedSignHeader(state.selectedSignId, state.syllabicMap, state.logogramGuesses)}
+            ${renderSelectedSignHeader(selectedSignId, state.syllabicMap, state.logogramGuesses)}
             ${renderCVGrid(state.syllabicMap)}
-            ${renderLogogramGuessSection(state.selectedSignId, state.logogramGuesses)}
+            ${renderLogogramGuessSection(selectedSignId, state.logogramGuesses)}
           </section>
 
           <section class="panel${lexiconActive ? " is-active" : ""}" aria-label="Lexicon panel"${lexiconActive ? ' role="tabpanel"' : ""}>

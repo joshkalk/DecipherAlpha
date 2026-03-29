@@ -1,4 +1,4 @@
-import type { Inscription, LexiconEntry } from "./types";
+import type { AppState, Inscription, LexiconEntry } from "./types";
 
 export const corpus: Inscription[] = [
   { id: "i01", words: [["NE", "MA", "DO"], ["NE"], ["gate"]] },
@@ -64,3 +64,53 @@ export const lexicon: LexiconEntry[] = [
   { english: "wood", yot: "ME-KO" },
   { english: "workers", yot: "KA-NO" },
 ];
+
+export const syllabicAnswerKey: Record<string, string> = {
+  DA: "D-A",
+  DE: "D-E",
+  DO: "D-O",
+  KA: "K-A",
+  KE: "K-E",
+  KO: "K-O",
+  MA: "M-A",
+  ME: "M-E",
+  MO: "M-O",
+  NA: "N-A",
+  NE: "N-E",
+  NO: "N-O",
+};
+
+export const logogramAnswerKey: Record<string, string> = {
+  carry: "carry",
+  chamber: "chamber",
+  gate: "gate",
+  guard: "guard",
+  lower: "lower",
+  stone: "stone",
+  upper: "upper",
+  workers: "workers",
+};
+
+export const totalCorrectSigns = Object.keys(syllabicAnswerKey).length + Object.keys(logogramAnswerKey).length;
+
+export function getCorrectCount(state: AppState): number {
+  let count = 0;
+
+  for (const [signId, correctCellId] of Object.entries(syllabicAnswerKey)) {
+    if (state.syllabicMap[correctCellId] === signId) {
+      count++;
+    }
+  }
+
+  for (const [signId, correctWord] of Object.entries(logogramAnswerKey)) {
+    if (state.logogramGuesses[signId] === correctWord) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
+export function isSolved(state: AppState): boolean {
+  return getCorrectCount(state) === totalCorrectSigns;
+}
