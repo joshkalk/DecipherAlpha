@@ -265,6 +265,7 @@ function renderSignInventory(selectedSignId: string | null): string {
 
   return `
     <div class="tools-section">
+      <p class="section-helper-text">Use these tools to compare repetition, position, and neighboring signs.</p>
       <h3>Sign Inventory</h3>
       <div class="sign-inventory-grid">
         ${signsMarkup}
@@ -290,7 +291,7 @@ function renderUnigramFrequency(selectedSignId: string | null): string {
 
   return `
     <div class="tools-section">
-      <h3>Unigram Frequency</h3>
+      <h3>Single-Sign Frequency</h3>
       <table class="frequency-table">
         <thead>
           <tr>
@@ -328,7 +329,7 @@ function renderPositionalFrequency(selectedSignId: string | null): string {
 
   return `
     <div class="tools-section">
-      <h3>Positional Frequency</h3>
+      <h3>Position in Inscription</h3>
       <table class="frequency-table">
         <thead>
           <tr>
@@ -363,11 +364,11 @@ function renderBigramFrequency(selectedSignId: string | null): string {
 
   return `
     <div class="tools-section">
-      <h3>Bigram Frequency</h3>
+      <h3>Neighbor Pairs</h3>
       <table class="frequency-table">
         <thead>
           <tr>
-            <th class="freq-col-bigram">Bigram</th>
+            <th class="freq-col-bigram">Pair</th>
             <th class="freq-col-count">Count</th>
           </tr>
         </thead>
@@ -391,7 +392,7 @@ function renderSelectedSignHeader(
         <div class="selected-sign-display">
           <div class="selected-sign-placeholder"></div>
         </div>
-        <p class="selected-sign-status">No sign selected</p>
+        <p class="selected-sign-status">Select a sign to begin.</p>
       </div>
     `;
   }
@@ -401,10 +402,10 @@ function renderSelectedSignHeader(
     ? `<img class="selected-sign-image" src="${imagePath}" alt="${selectedSignId}" />`
     : `<span class="selected-sign-image-missing">${selectedSignId}</span>`;
 
-  let status = "No guess";
+  let status = "No guess yet";
   for (const [cellId, signId] of Object.entries(syllabicMap)) {
     if (signId === selectedSignId) {
-      status = `Syllabic: ${cellId}`;
+      status = `Syllable: ${cellId}`;
       break;
     }
   }
@@ -421,7 +422,7 @@ function renderSelectedSignHeader(
         ${imageMarkup}
       </div>
       <p class="selected-sign-status">${status}</p>
-      <button class="clear-syllabic-btn" type="button" data-action="clear-hypothesis">Clear assignment</button>
+      <button class="clear-syllabic-btn" type="button" data-action="clear-hypothesis">Clear guess</button>
     </div>
   `;
 }
@@ -433,43 +434,40 @@ function renderInstructions(): string {
 
       <div class="instructions-section">
         <h4>Goal</h4>
-        <p>Decipher the 20 symbols of the Yot writing system.</p>
+        <p>Decipher all 20 symbols in the Yot writing system.</p>
       </div>
 
       <div class="instructions-section">
-        <h4>What you are looking at</h4>
+        <h4>The basic idea</h4>
         <ul class="instructions-list">
-          <li><strong>Corpus:</strong> the full set of inscriptions you are trying to decipher</li>
-          <li><strong>Logogram:</strong> one symbol that stands for a whole word</li>
-          <li><strong>Syllabic sign:</strong> one symbol that stands for a syllable</li>
-          <li><strong>CV grid:</strong> a chart where you assign a symbol to a consonant-vowel syllable such as NE or DO</li>
-          <li><strong>Unigram:</strong> a single symbol counted across the corpus</li>
-          <li><strong>Bigram:</strong> a pair of neighboring symbols counted across the corpus</li>
+          <li>The inscriptions on the left are your evidence.</li>
+          <li>This script mixes <strong>logograms</strong> (one symbol = one whole word) and <strong>syllabic signs</strong> (one symbol = one syllable).</li>
+          <li>Use repetition, word position, neighboring signs, and the lexicon to form hypotheses.</li>
         </ul>
       </div>
 
       <div class="instructions-section">
-        <h4>How to Play</h4>
+        <h4>What to do</h4>
         <ol class="instructions-list instructions-list-numbered">
-          <li>Click a symbol in the corpus or in the Tools tab to highlight it.</li>
-          <li>Look for where it repeats.</li>
-          <li>Use the Tools tab to study how often it appears, where it appears, and which symbols appear next to it.</li>
-          <li>Go to the Hypothesis tab.</li>
-          <li>If you think the symbol is syllabic, place it in the CV grid.</li>
+          <li>Click any symbol in the corpus or Tools tab to highlight it.</li>
+          <li>Look for where it repeats and what signs appear around it.</li>
+          <li>Use the Tools tab to study frequency, position, and neighboring pairs.</li>
+          <li>Go to the Hypothesis tab to assign the selected symbol.</li>
+          <li>If you think it is syllabic, place it in the syllable grid.</li>
           <li>If you think the symbol is a logogram, choose a word from the dropdown.</li>
-          <li>Watch the corpus update with your current guesses.</li>
-          <li>Revise your guesses as you learn more.</li>
+          <li>The corpus will update with your current guesses.</li>
+          <li>Change your guesses whenever you want.</li>
         </ol>
       </div>
 
       <div class="instructions-section">
-        <h4>Useful reminders</h4>
+        <h4>Remember</h4>
         <ul class="instructions-list">
-          <li>Vertical lines separate words in the corpus</li>
-          <li>This script mixes logograms and syllabic signs</li>
-          <li>Not every word in the lexicon is used in the corpus</li>
-          <li>You can change your guesses at any time</li>
-          <li>The puzzle is solved when all 20 symbols are correctly identified</li>
+          <li>Vertical lines in the corpus separate words.</li>
+          <li>Not every word in the lexicon appears in the corpus.</li>
+          <li>You do not need to get everything right immediately.</li>
+          <li>You will get a signal when you are close.</li>
+          <li>The puzzle is complete when all 20 symbols are identified correctly.</li>
         </ul>
       </div>
     </div>
@@ -508,12 +506,15 @@ function renderCVGrid(syllabicMap: Record<string, string>): string {
     .join("");
 
   return `
-    <div class="cv-grid-container">
-      <div class="cv-grid-header">
-        <div class="cv-corner">CV</div>
-        ${colHeaders}
+    <div class="cv-grid-section">
+      <p class="section-helper-text">Place the selected sign in the syllable you think it represents.</p>
+      <div class="cv-grid-container">
+        <div class="cv-grid-header">
+          <div class="cv-corner">Syllables</div>
+          ${colHeaders}
+        </div>
+        ${cellRows}
       </div>
-      ${cellRows}
     </div>
   `;
 }
@@ -547,7 +548,8 @@ function renderLogogramGuessSection(
 
   return `
     <div class="logogram-guess-section">
-      <label class="logogram-guess-label" for="logogram-guess-select">Logogram guess</label>
+      <p class="section-helper-text">If you think the selected sign is a whole word, choose it here.</p>
+      <label class="logogram-guess-label" for="logogram-guess-select">Whole-word guess</label>
       <select
         id="logogram-guess-select"
         class="logogram-guess-select"
@@ -582,7 +584,11 @@ function renderCorpusHeader(correctCount: number): string {
   return `
     <header class="pane-header pane-header-corpus">
       <div class="pane-header-copy">
-        <h1 id="corpus-heading">Yot Corpus</h1>
+        <h1 id="corpus-heading">Yot Inscriptions</h1>
+        <div class="pane-helper-text">
+          <p>Click a symbol to highlight matching signs across the inscriptions.</p>
+          <p>Vertical lines mark word breaks.</p>
+        </div>
       </div>
       <div class="corpus-banner"${bannerText ? "" : ' aria-hidden="true"'}>
         ${bannerText}
@@ -653,6 +659,7 @@ export function renderApp(state: AppState): string {
 
           <section class="panel${lexiconActive ? " is-active" : ""}" aria-label="Lexicon panel"${lexiconActive ? ' role="tabpanel"' : ""}>
             <h3>Lexicon</h3>
+            <p class="section-helper-text">These are possible Yot words. Not all of them appear in the inscriptions.</p>
             ${renderLexicon()}
           </section>
         </div>
