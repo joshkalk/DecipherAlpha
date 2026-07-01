@@ -1,5 +1,6 @@
-import { corpus, getCorrectCount, isSolved, lexicon, totalCorrectSigns } from "./data";
-import type { AppState, Inscription } from "./types";
+import { getActivePuzzle, getCorrectCount, getTotalCorrectSigns, isSolved } from "./data";
+import { getActiveProgress, getLevel0TutorialState } from "./state";
+import type { AppState, Inscription, Level0TutorialState, LexiconEntry, Puzzle } from "./types";
 
 const glyphModules = import.meta.glob<string>("./assets/Glyphs/*.png", {
   eager: true,
@@ -20,21 +21,45 @@ const signImageById: Record<string, string> = Object.fromEntries(
     .filter((entry): entry is readonly [string, string] => entry !== null),
 );
 
+const level0FirstGuideTarget = {
+  signId: "guard",
+  inscriptionId: "t01",
+  wordIndex: 0,
+  signIndex: 0,
+};
+
+type CorpusSignContext = {
+  inscriptionId: string;
+  wordIndex: number;
+  signIndex: number;
+  isFirstGuideTarget: boolean;
+};
+
+type Level0TutorialCopy = {
+  banner: string;
+  title: string;
+  text: string;
+};
+
 function signImagePath(signId: string): string | null {
   return signImageById[signId] ?? null;
 }
 
-function renderSign(signId: string, isHighlighted: boolean): string {
+function renderSign(signId: string, isHighlighted: boolean, context?: CorpusSignContext): string {
   const imagePath = signImagePath(signId);
   const highlightClass = isHighlighted ? " is-highlighted" : "";
+  const guideClass = context?.isFirstGuideTarget ? " is-guide-target" : "";
+  const contextAttrs = context
+    ? ` data-inscription-id="${context.inscriptionId}" data-word-index="${context.wordIndex}" data-sign-index="${context.signIndex}"`
+    : "";
 
   
   if (!imagePath) {
     // Fallback text keeps corpus rows readable if an unexpected sign id appears.
-    return `<span class="sign sign-missing${highlightClass}" data-sign-id="${signId}" aria-label="missing sign ${signId}">${signId}</span>`;
+    return `<span class="sign sign-missing${highlightClass}${guideClass}" data-sign-id="${signId}"${contextAttrs} aria-label="missing sign ${signId}">${signId}</span>`;
   }
 
-  return `<img class="sign${highlightClass}" data-sign-id="${signId}" src="${imagePath}" alt="${signId}" loading="lazy" decoding="async" />`;
+  return `<img class="sign${highlightClass}${guideClass}" data-sign-id="${signId}"${contextAttrs} src="${imagePath}" alt="${signId}" loading="lazy" decoding="async" />`;
 }
 
 function getSyllabicCellForSign(signId: string, syllabicMap: Record<string, string>): string | null {
@@ -47,12 +72,12 @@ function getSyllabicCellForSign(signId: string, syllabicMap: Record<string, stri
   return null;
 }
 
-function getEnglishForReading(reading: string): string {
+function getEnglishForReading(reading: string, lexicon: LexiconEntry[]): string {
   const entry = lexicon.find((item) => item.yot === reading);
   return entry?.english ?? "";
 }
 
-function getLexiconEntryForEnglish(english: string) {
+function getLexiconEntryForEnglish(english: string, lexicon: LexiconEntry[]) {
   return lexicon.find((item) => item.english === english) ?? null;
 }
 
@@ -81,21 +106,38 @@ function renderSyllabicLine(parts: string[]): string {
 }
 
 function renderCorpusWord(
+  puzzle: Puzzle,
+  inscriptionId: string,
+  wordIndex: number,
   word: string[],
   selectedSignId: string | null,
   syllabicMap: Record<string, string>,
   logogramGuesses: Record<string, string>,
+  emphasizeFirstGuideTarget: boolean,
 ): string {
   const glyphsMarkup = word
-    .map((signId) => renderSign(signId, signId === selectedSignId))
+    .map((signId, signIndex) => {
+      const isFirstGuideTarget = emphasizeFirstGuideTarget
+        && signId === level0FirstGuideTarget.signId
+        && inscriptionId === level0FirstGuideTarget.inscriptionId
+        && wordIndex === level0FirstGuideTarget.wordIndex
+        && signIndex === level0FirstGuideTarget.signIndex;
+
+      return renderSign(signId, signId === selectedSignId, {
+        inscriptionId,
+        wordIndex,
+        signIndex,
+        isFirstGuideTarget,
+      });
+    })
     .join("");
   const readingParts = getSyllabicReadingParts(word, syllabicMap);
   const fullReading = readingParts.every(Boolean) ? readingParts.join("-") : "";
-  const englishFromReading = fullReading ? getEnglishForReading(fullReading) : "";
+  const englishFromReading = fullReading ? getEnglishForReading(fullReading, puzzle.lexicon) : "";
   const logogramGuess = word.length === 1 ? (logogramGuesses[word[0]] ?? "") : "";
-  const logogramEntry = logogramGuess ? getLexiconEntryForEnglish(logogramGuess) : null;
+  const logogramEntry = logogramGuess ? getLexiconEntryForEnglish(logogramGuess, puzzle.lexicon) : null;
   const englishLine = logogramGuess || englishFromReading;
-  const syllabicLine = logogramEntry
+  const syllabicLine = logogramEntry && logogramEntry.yot
     ? `<span class="corpus-word-reading corpus-word-reading-full">${logogramEntry.yot}</span>`
     : renderSyllabicLine(readingParts);
 
@@ -109,15 +151,17 @@ function renderCorpusWord(
 }
 
 function renderInscription(
+  puzzle: Puzzle,
   inscription: Inscription,
   selectedSignId: string | null,
   syllabicMap: Record<string, string>,
   logogramGuesses: Record<string, string>,
+  emphasizeFirstGuideTarget: boolean,
 ): string {
   const wordsMarkup = inscription.words
     .map((word, index) => {
       const separatorMarkup = index === 0 ? "" : `<span class="word-separator" aria-hidden="true"></span>`;
-      return `${separatorMarkup}<span class="word" aria-label="word">${renderCorpusWord(word, selectedSignId, syllabicMap, logogramGuesses)}</span>`;
+      return `${separatorMarkup}<span class="word" aria-label="word">${renderCorpusWord(puzzle, inscription.id, index, word, selectedSignId, syllabicMap, logogramGuesses, emphasizeFirstGuideTarget)}</span>`;
     })
     .join("");
 
@@ -138,8 +182,8 @@ function renderInscription(
   `;
 }
 
-function renderLexicon(): string {
-  const rows = lexicon
+function renderLexicon(puzzle: Puzzle): string {
+  const rows = puzzle.lexicon
     .map(
       (entry) => `
       <tr>
@@ -166,7 +210,7 @@ function renderLexicon(): string {
 }
 
 // Extract all unique signs from corpus in first-appearance order.
-function getAllSigns(): string[] {
+function getAllSigns(corpus: Inscription[]): string[] {
   const signs = new Set<string>();
   corpus.forEach((inscription) => {
     inscription.words.forEach((word) => {
@@ -184,10 +228,10 @@ function getSignStream(inscription: Inscription): string[] {
 }
 
 // Count occurrences of each sign at each position (first/middle/last)
-function getPositionalFrequency(): Record<string, { first: number; middle: number; last: number }> {
+function getPositionalFrequency(corpus: Inscription[]): Record<string, { first: number; middle: number; last: number }> {
   const freq: Record<string, { first: number; middle: number; last: number }> = {};
 
-  getAllSigns().forEach((sign) => {
+  getAllSigns(corpus).forEach((sign) => {
     freq[sign] = { first: 0, middle: 0, last: 0 };
   });
 
@@ -211,7 +255,7 @@ function getPositionalFrequency(): Record<string, { first: number; middle: numbe
 }
 
 // Count unigram occurrences
-function getUnigramFrequency(): Array<{ sign: string; count: number }> {
+function getUnigramFrequency(corpus: Inscription[]): Array<{ sign: string; count: number }> {
   const freq: Record<string, number> = {};
 
   corpus.forEach((inscription) => {
@@ -230,7 +274,7 @@ function getUnigramFrequency(): Array<{ sign: string; count: number }> {
 }
 
 // Count bigrams (adjacent sign pairs)
-function getBigramFrequency(): Array<{ left: string; right: string; count: number }> {
+function getBigramFrequency(corpus: Inscription[]): Array<{ left: string; right: string; count: number }> {
   const freq: Record<string, number> = {};
 
   corpus.forEach((inscription) => {
@@ -254,8 +298,8 @@ function getBigramFrequency(): Array<{ left: string; right: string; count: numbe
     });
 }
 
-function renderSignInventory(selectedSignId: string | null): string {
-  const signs = getAllSigns();
+function renderSignInventory(puzzle: Puzzle, selectedSignId: string | null): string {
+  const signs = getAllSigns(puzzle.corpus);
   const signsMarkup = signs
     .map((sign) => {
       const isHighlighted = sign === selectedSignId;
@@ -274,8 +318,8 @@ function renderSignInventory(selectedSignId: string | null): string {
   `;
 }
 
-function renderUnigramFrequency(selectedSignId: string | null): string {
-  const unigrams = getUnigramFrequency();
+function renderUnigramFrequency(puzzle: Puzzle, selectedSignId: string | null): string {
+  const unigrams = getUnigramFrequency(puzzle.corpus);
   const rows = unigrams
     .map((entry, index) => {
       const isHighlighted = entry.sign === selectedSignId;
@@ -308,9 +352,9 @@ function renderUnigramFrequency(selectedSignId: string | null): string {
   `;
 }
 
-function renderPositionalFrequency(selectedSignId: string | null): string {
-  const positional = getPositionalFrequency();
-  const signs = getAllSigns();
+function renderPositionalFrequency(puzzle: Puzzle, selectedSignId: string | null): string {
+  const positional = getPositionalFrequency(puzzle.corpus);
+  const signs = getAllSigns(puzzle.corpus);
 
   const rows = signs
     .map((sign) => {
@@ -347,8 +391,8 @@ function renderPositionalFrequency(selectedSignId: string | null): string {
   `;
 }
 
-function renderBigramFrequency(selectedSignId: string | null): string {
-  const bigrams = getBigramFrequency();
+function renderBigramFrequency(puzzle: Puzzle, selectedSignId: string | null): string {
+  const bigrams = getBigramFrequency(puzzle.corpus);
   const rows = bigrams
     .map((entry) => {
       const leftHighlighted = entry.left === selectedSignId;
@@ -427,10 +471,34 @@ function renderSelectedSignHeader(
   `;
 }
 
-function renderInstructions(): string {
+function renderLevel1BridgeMessage(): string {
+  return `
+    <div class="bridge-message" aria-label="Level 1 bridge">
+      <p>The next tablet is harder. Some signs are whole-word logograms, and some signs are syllables. One sign is familiar from the tutorial: guard. Use that foothold, then use the tools to look for broader patterns.</p>
+    </div>
+  `;
+}
+
+function renderInstructions(puzzle: Puzzle, showLevel1Bridge: boolean): string {
+  if (!puzzle.hasSyllabicSigns) {
+    return `
+      <div class="instructions-panel">
+        <h3>Instructions</h3>
+
+        <div class="instructions-section">
+          <p>This tutorial tablet uses only logograms. Each sign stands for a whole word.</p>
+          <p>Click a sign in the tablet, then choose a possible meaning in the Hypothesis tab. Your guesses are temporary. If the evidence changes, you can change them.</p>
+          <p>Use repeated signs and sentence position to test your guesses. First and last signs are often people or things. Middle signs are often actions.</p>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="instructions-panel">
       <h3>Instructions</h3>
+
+      ${showLevel1Bridge ? renderLevel1BridgeMessage() : ""}
 
       <div class="instructions-section">
         <h4>Goal</h4>
@@ -520,16 +588,29 @@ function renderCVGrid(syllabicMap: Record<string, string>): string {
 }
 
 function renderLogogramGuessSection(
+  puzzle: Puzzle,
   selectedSignId: string | null,
   logogramGuesses: Record<string, string>,
 ): string {
   const selectedWord = selectedSignId ? (logogramGuesses[selectedSignId] ?? "") : "";
-  const options = lexicon
-    .map((entry) => {
+  const renderOption = (entry: LexiconEntry): string => {
       const isSelected = entry.english === selectedWord ? ' selected' : "";
       return `<option value="${entry.english}"${isSelected}>${entry.english}</option>`;
-    })
-    .join("");
+  };
+  const sortByEnglish = (entries: LexiconEntry[]): LexiconEntry[] =>
+    [...entries].sort((left, right) => left.english.localeCompare(right.english));
+  const nouns = sortByEnglish(puzzle.lexicon.filter((entry) => entry.category === "noun"));
+  const verbs = sortByEnglish(puzzle.lexicon.filter((entry) => entry.category === "verb"));
+  const options = nouns.length || verbs.length
+    ? `
+        <optgroup label="Nouns">
+          ${nouns.map(renderOption).join("")}
+        </optgroup>
+        <optgroup label="Verbs">
+          ${verbs.map(renderOption).join("")}
+        </optgroup>
+      `
+    : sortByEnglish(puzzle.lexicon).map(renderOption).join("");
   const guessRows = Object.entries(logogramGuesses)
     .sort(([leftSignId], [rightSignId]) => leftSignId.localeCompare(rightSignId))
     .map(([signId, word]) => {
@@ -564,6 +645,138 @@ function renderLogogramGuessSection(
   `;
 }
 
+function getLevel0TutorialCopy(
+  tutorialState: Level0TutorialState,
+  selectedSignId: string | null,
+  correctCount: number,
+  totalCorrectSigns: number,
+): Level0TutorialCopy {
+  if (correctCount === totalCorrectSigns) {
+    return {
+      banner: "Tablet solved. You matched every sign in this tutorial tablet.",
+      title: "Tablet solved",
+      text: "Every sign in this tutorial tablet has a matching meaning.",
+    };
+  }
+
+  if (!tutorialState.hasCompletedFirstSignGuide) {
+    if (tutorialState.firstGuessMisstep) {
+      return {
+        banner: "Choose guard for this first sign.",
+        title: "First clue",
+        text: "For this first step, choose guard so you can see how a whole-word guess appears across the tablet.",
+      };
+    }
+
+    if (tutorialState.hasSelectedFirstSignGuideTarget) {
+      return {
+        banner: "Open Hypothesis and choose a possible meaning for the selected sign.",
+        title: "First clue",
+        text: "This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word. Click on the Hypothesis tab to guess what this sign represents.",
+      };
+    }
+
+    if (tutorialState.firstSignMisclick) {
+      return {
+        banner: "Start by clicking the first sign in line 1.",
+        title: "How to read this tablet",
+        text: "For this first step, click the first sign in the first line.",
+      };
+    }
+
+    return {
+      banner: "Start by clicking the first sign in line 1.",
+      title: "How to read this tablet",
+      text: "Start with the first sign in the tablet. Click the first sign in line 1.",
+    };
+  }
+
+  if (tutorialState.hasMadeFirstGuess && tutorialState.changesSinceBestCorrect >= 4) {
+    return {
+      banner: "Pause and compare sentence positions before changing more guesses.",
+      title: "Compare positions",
+      text: "The middle sign is usually the action. Try solving one repeated middle sign before changing more guesses.",
+    };
+  }
+
+  if (tutorialState.hasMadeFirstGuess && selectedSignId && selectedSignId !== level0FirstGuideTarget.signId) {
+    return {
+      banner: "Choose a possible meaning for this sign, or click another sign to gather more evidence.",
+      title: "Compare positions",
+      text: "Look at where this sign appears. First and last signs are often people or things. Middle signs are often actions.",
+    };
+  }
+
+  if (tutorialState.hasMadeFirstGuess) {
+    return {
+      banner: "Click another repeated sign and compare where it appears.",
+      title: "Testing a guess",
+      text: "Your guess now appears under matching signs. It does not need to be final. Keep comparing signs, positions, and sentence patterns.",
+    };
+  }
+
+  if (correctCount >= 6) {
+    return {
+      banner: "You are close.",
+      title: "Compare positions",
+      text: "Look for signs that appear in more than one sentence and test whether your guesses fit every line.",
+    };
+  }
+
+  if (correctCount >= 4) {
+    return {
+      banner: "You have enough evidence to solve most of this tablet.",
+      title: "Compare positions",
+      text: "Try solving repeated middle signs before changing more guesses.",
+    };
+  }
+
+  if (correctCount > 0) {
+    return {
+      banner: "Keep testing guesses across multiple lines.",
+      title: "Compare positions",
+      text: "First and last signs are often people or things. Middle signs are often actions.",
+    };
+  }
+
+  return {
+    banner: "Open Hypothesis and choose a possible meaning for the selected sign.",
+    title: "First clue",
+    text: "This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word. Click on the Hypothesis tab to guess what this sign represents.",
+  };
+}
+
+function renderLevel0TutorialPanel(
+  tutorialState: Level0TutorialState,
+  selectedSignId: string | null,
+  correctCount: number,
+  totalCorrectSigns: number,
+): string {
+  const copy = getLevel0TutorialCopy(tutorialState, selectedSignId, correctCount, totalCorrectSigns);
+  const continueMarkup = correctCount === totalCorrectSigns
+    ? `<button class="tutorial-continue-btn" type="button" data-action="continue-level1">Continue to Level 1</button>`
+    : "";
+
+  return `
+    <aside class="tutorial-card" aria-label="Level 0 tutorial guidance">
+      <h3>${copy.title}</h3>
+      <p>${copy.text}</p>
+      ${continueMarkup}
+    </aside>
+  `;
+}
+
+function getVisibleTabs(puzzle: Puzzle): Array<"instructions" | "hypothesis" | "tools" | "lexicon"> {
+  return puzzle.hasSyllabicSigns
+    ? ["instructions", "hypothesis", "tools", "lexicon"]
+    : ["instructions", "hypothesis", "lexicon"];
+}
+
+function getRenderableTab(state: AppState, puzzle: Puzzle): "instructions" | "hypothesis" | "tools" | "lexicon" {
+  const visibleTabs = getVisibleTabs(puzzle);
+  return visibleTabs.includes(state.selectedTab) ? state.selectedTab : "instructions";
+}
+
 function renderTabButton(tabName: "instructions" | "hypothesis" | "tools" | "lexicon", isActive: boolean): string {
   const label = tabName.charAt(0).toUpperCase() + tabName.slice(1);
   const activeClass = isActive ? " is-active" : "";
@@ -572,25 +785,48 @@ function renderTabButton(tabName: "instructions" | "hypothesis" | "tools" | "lex
   return `<button class="tab${activeClass}" type="button" data-tab="${tabName}"${ariaAttr}>${label}</button>`;
 }
 
-function renderCorpusHeader(correctCount: number): string {
-  let bannerText = "";
-
-  if (correctCount === totalCorrectSigns) {
-    bannerText = "Decipherment Complete!";
-  } else if (correctCount >= 16) {
-    bannerText = `You are close: ${correctCount} of ${totalCorrectSigns} correct`;
+function getBannerText(
+  puzzle: Puzzle,
+  correctCount: number,
+  totalCorrectSigns: number,
+  level0TutorialState: Level0TutorialState,
+  selectedSignId: string | null,
+): string {
+  if (!puzzle.hasSyllabicSigns) {
+    return getLevel0TutorialCopy(level0TutorialState, selectedSignId, correctCount, totalCorrectSigns).banner;
   }
 
+  if (correctCount === totalCorrectSigns) {
+    return "Decipherment Complete!";
+  }
+
+  if (correctCount >= Math.max(totalCorrectSigns - 4, 1)) {
+    return `You are close: ${correctCount} of ${totalCorrectSigns} correct`;
+  }
+
+  return `${correctCount} of ${totalCorrectSigns} correct`;
+}
+
+function renderCorpusHeader(
+  puzzle: Puzzle,
+  correctCount: number,
+  level0TutorialState: Level0TutorialState,
+  selectedSignId: string | null,
+): string {
+  const totalCorrectSigns = getTotalCorrectSigns(puzzle);
+  const bannerText = getBannerText(puzzle, correctCount, totalCorrectSigns, level0TutorialState, selectedSignId);
+  const tutorialHeaderClass = puzzle.hasSyllabicSigns ? "" : " pane-header-corpus-tutorial";
+
   return `
-    <header class="pane-header pane-header-corpus">
+    <header class="pane-header pane-header-corpus${tutorialHeaderClass}">
       <div class="pane-header-copy">
         <h1 id="corpus-heading">Yot Inscriptions</h1>
         <div class="pane-helper-text">
-          <p>Click a symbol to highlight matching signs across the inscriptions.</p>
+          <p>Click a sign to highlight matching signs across the inscriptions.</p>
           <p>Vertical lines mark word breaks.</p>
         </div>
       </div>
-      <div class="corpus-banner"${bannerText ? "" : ' aria-hidden="true"'}>
+      <div class="corpus-banner">
         ${bannerText}
       </div>
     </header>
@@ -598,29 +834,44 @@ function renderCorpusHeader(correctCount: number): string {
 }
 
 export function renderApp(state: AppState): string {
-  const correctCount = getCorrectCount(state);
-  const solved = isSolved(state);
+  const puzzle = getActivePuzzle(state);
+  const progress = getActiveProgress(state);
+  const level0TutorialState = getLevel0TutorialState(state);
+  const correctCount = getCorrectCount(state, puzzle);
+  const totalCorrectSigns = getTotalCorrectSigns(puzzle);
+  const solved = isSolved(state, puzzle);
   const selectedSignId = solved ? null : state.selectedSignId;
-  const corpusMarkup = corpus
+  const activeTab = getRenderableTab(state, puzzle);
+  const emphasizeFirstGuideTarget = puzzle.id === "level0"
+    && !solved
+    && !level0TutorialState.hasCompletedFirstSignGuide
+    && !level0TutorialState.hasSelectedFirstSignGuideTarget;
+  const tutorialPanelMarkup = puzzle.id === "level0"
+    ? renderLevel0TutorialPanel(level0TutorialState, selectedSignId, correctCount, totalCorrectSigns)
+    : "";
+  const corpusMarkup = puzzle.corpus
     .map((inscription) =>
       renderInscription(
+        puzzle,
         inscription,
         selectedSignId,
-        state.syllabicMap,
-        state.logogramGuesses,
+        progress.syllabicMap,
+        progress.logogramGuesses,
+        emphasizeFirstGuideTarget,
       ),
     )
     .join("");
 
-  const instructionsActive = state.selectedTab === "instructions";
-  const toolsActive = state.selectedTab === "tools";
-  const hypothesisActive = state.selectedTab === "hypothesis";
-  const lexiconActive = state.selectedTab === "lexicon";
+  const visibleTabs = getVisibleTabs(puzzle);
+  const instructionsActive = activeTab === "instructions";
+  const toolsActive = activeTab === "tools";
+  const hypothesisActive = activeTab === "hypothesis";
+  const lexiconActive = activeTab === "lexicon";
 
   return `
     <main class="app-shell${solved ? " is-solved" : ""}" aria-label="Decipherment alpha layout">
       <section class="pane pane-corpus${solved ? " is-solved" : ""}" aria-labelledby="corpus-heading">
-        ${renderCorpusHeader(correctCount)}
+        ${renderCorpusHeader(puzzle, correctCount, level0TutorialState, selectedSignId)}
 
         <div class="pane-body pane-body-corpus">
           ${corpusMarkup}
@@ -633,34 +884,35 @@ export function renderApp(state: AppState): string {
         </header>
 
         <nav class="tab-row" aria-label="Workbench tabs">
-          ${renderTabButton("instructions", instructionsActive)}
-          ${renderTabButton("hypothesis", hypothesisActive)}
-          ${renderTabButton("tools", toolsActive)}
-          ${renderTabButton("lexicon", lexiconActive)}
+          ${visibleTabs.map((tab) => renderTabButton(tab, activeTab === tab)).join("")}
         </nav>
+
+        ${tutorialPanelMarkup}
 
         <div class="tab-panels">
           <section class="panel${instructionsActive ? " is-active" : ""}" aria-label="Instructions panel"${instructionsActive ? ' role="tabpanel"' : ""}>
-            ${renderInstructions()}
+            ${renderInstructions(puzzle, state.arrivedFromLevel0)}
           </section>
 
           <section class="panel${hypothesisActive ? " is-active" : ""}" aria-label="Hypothesis panel"${hypothesisActive ? ' role="tabpanel"' : ""}>
-            ${renderSelectedSignHeader(selectedSignId, state.syllabicMap, state.logogramGuesses)}
-            ${renderCVGrid(state.syllabicMap)}
-            ${renderLogogramGuessSection(selectedSignId, state.logogramGuesses)}
+            ${renderSelectedSignHeader(selectedSignId, progress.syllabicMap, progress.logogramGuesses)}
+            ${puzzle.hasSyllabicSigns ? renderCVGrid(progress.syllabicMap) : ""}
+            ${renderLogogramGuessSection(puzzle, selectedSignId, progress.logogramGuesses)}
           </section>
 
-          <section class="panel${toolsActive ? " is-active" : ""}" aria-label="Tools panel"${toolsActive ? ' role="tabpanel"' : ""}>
-            ${renderSignInventory(selectedSignId)}
-            ${renderUnigramFrequency(selectedSignId)}
-            ${renderPositionalFrequency(selectedSignId)}
-            ${renderBigramFrequency(selectedSignId)}
-          </section>
+          ${puzzle.hasSyllabicSigns ? `
+            <section class="panel${toolsActive ? " is-active" : ""}" aria-label="Tools panel"${toolsActive ? ' role="tabpanel"' : ""}>
+              ${renderSignInventory(puzzle, selectedSignId)}
+              ${renderUnigramFrequency(puzzle, selectedSignId)}
+              ${renderPositionalFrequency(puzzle, selectedSignId)}
+              ${renderBigramFrequency(puzzle, selectedSignId)}
+            </section>
+          ` : ""}
 
           <section class="panel${lexiconActive ? " is-active" : ""}" aria-label="Lexicon panel"${lexiconActive ? ' role="tabpanel"' : ""}>
             <h3>Lexicon</h3>
             <p class="section-helper-text">These are possible Yot words. Not all of them appear in the inscriptions.</p>
-            ${renderLexicon()}
+            ${renderLexicon(puzzle)}
           </section>
         </div>
       </section>

@@ -80,7 +80,12 @@ body {
   gap: 1rem;
 }
 
+.pane-header-corpus-tutorial {
+  flex-wrap: wrap;
+}
+
 .pane-header-copy {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -91,6 +96,12 @@ body {
   color: #374151;
   text-align: right;
   white-space: nowrap;
+}
+
+.pane-header-corpus-tutorial .corpus-banner {
+  flex: 1 0 100%;
+  text-align: left;
+  white-space: normal;
 }
 
 h1,
@@ -290,6 +301,11 @@ p {
   outline: 2px solid #D4A017;
 }
 
+.sign.is-guide-target {
+  box-shadow: 0 0 0 3px #60a5fa, inset 0 0 0 2px #60a5fa;
+  outline: 2px solid #2563eb;
+}
+
 
 .sign-missing {
   min-width: 22px;
@@ -324,6 +340,54 @@ p {
   background: #e5e7eb;
   border-color: #9ca3af;
   font-weight: 500;
+}
+
+.tutorial-card {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.tutorial-card h3 {
+  margin-bottom: 0.25rem;
+}
+
+.tutorial-card p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.tutorial-continue-btn {
+  margin-top: 0.7rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #9ca3af;
+  border-radius: 6px;
+  background: #111827;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tutorial-continue-btn:hover {
+  background: #374151;
+}
+
+.bridge-message {
+  margin: 0.75rem 0 1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.bridge-message p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.9rem;
 }
 
 .tab-panels {
