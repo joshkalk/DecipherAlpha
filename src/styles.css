@@ -25,6 +25,45 @@ body {
   overflow: hidden;
 }
 
+.opening-screen {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.opening-panel {
+  width: min(100%, 560px);
+  padding: 1.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.opening-panel h1 {
+  margin-bottom: 0.85rem;
+  font-size: 1.4rem;
+}
+
+.opening-panel p {
+  color: #374151;
+}
+
+.opening-begin-btn {
+  margin-top: 1rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid #111827;
+  border-radius: 6px;
+  background: #111827;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.opening-begin-btn:hover {
+  background: #374151;
+}
+
 .app-shell {
   max-width: 1360px;
   height: 100%;
@@ -80,7 +119,12 @@ body {
   gap: 1rem;
 }
 
+.pane-header-corpus-tutorial {
+  flex-wrap: wrap;
+}
+
 .pane-header-copy {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -91,6 +135,12 @@ body {
   color: #374151;
   text-align: right;
   white-space: nowrap;
+}
+
+.pane-header-corpus-tutorial .corpus-banner {
+  flex: 1 0 100%;
+  text-align: left;
+  white-space: normal;
 }
 
 h1,
@@ -290,6 +340,11 @@ p {
   outline: 2px solid #D4A017;
 }
 
+.sign.is-guide-target {
+  box-shadow: 0 0 0 3px #60a5fa, inset 0 0 0 2px #60a5fa;
+  outline: 2px solid #2563eb;
+}
+
 
 .sign-missing {
   min-width: 22px;
@@ -324,6 +379,59 @@ p {
   background: #e5e7eb;
   border-color: #9ca3af;
   font-weight: 500;
+}
+
+.tutorial-card {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.tutorial-card h3 {
+  margin-bottom: 0.25rem;
+}
+
+.tutorial-card p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.tutorial-emphasis {
+  color: #374151;
+  font-weight: 700;
+}
+
+.tutorial-continue-btn {
+  margin-top: 0.7rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #9ca3af;
+  border-radius: 6px;
+  background: #111827;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tutorial-continue-btn:hover {
+  background: #374151;
+}
+
+.bridge-message {
+  margin: 0.75rem 0 1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.bridge-message p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.9rem;
 }
 
 .tab-panels {
