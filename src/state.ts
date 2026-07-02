@@ -14,15 +14,17 @@ function createLevel0TutorialState(): Level0TutorialState {
     guessChangeCount: 0,
     bestCorrectCount: 0,
     changesSinceBestCorrect: 0,
+    activeStuckHintBestCorrectCount: null,
+    lastStuckHintBestCorrectCount: null,
     hasSelectedFirstSignGuideTarget: false,
     hasCompletedFirstSignGuide: false,
     firstSignMisclick: false,
-    firstGuessMisstep: false,
   };
 }
 
 export const initialState: AppState = {
   activeLevelId: "level0",
+  hasStartedLevel0: false,
   selectedTab: "instructions",
   selectedSignId: null,
   progressByLevel: {

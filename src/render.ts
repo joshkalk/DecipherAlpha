@@ -447,9 +447,11 @@ function renderSelectedSignHeader(
     : `<span class="selected-sign-image-missing">${selectedSignId}</span>`;
 
   let status = "No guess yet";
+  let hasGuess = false;
   for (const [cellId, signId] of Object.entries(syllabicMap)) {
     if (signId === selectedSignId) {
       status = `Syllable: ${cellId}`;
+      hasGuess = true;
       break;
     }
   }
@@ -457,7 +459,11 @@ function renderSelectedSignHeader(
   const logogramGuess = logogramGuesses[selectedSignId];
   if (logogramGuess) {
     status = `Logogram: ${logogramGuess}`;
+    hasGuess = true;
   }
+  const clearButtonMarkup = hasGuess
+    ? `<button class="clear-syllabic-btn" type="button" data-action="clear-hypothesis">Clear guess</button>`
+    : "";
 
   return `
     <div class="selected-sign-header">
@@ -466,7 +472,7 @@ function renderSelectedSignHeader(
         ${imageMarkup}
       </div>
       <p class="selected-sign-status">${status}</p>
-      <button class="clear-syllabic-btn" type="button" data-action="clear-hypothesis">Clear guess</button>
+      ${clearButtonMarkup}
     </div>
   `;
 }
@@ -474,7 +480,7 @@ function renderSelectedSignHeader(
 function renderLevel1BridgeMessage(): string {
   return `
     <div class="bridge-message" aria-label="Level 1 bridge">
-      <p>The next tablet is harder. Some signs are whole-word logograms, and some signs are syllables. One sign is familiar from the tutorial: guard. Use that foothold, then use the tools to look for broader patterns.</p>
+      <p>The next tablet is harder. Some signs are whole word logograms, and some signs are syllables. One sign is familiar from the tutorial: guard. Use that foothold, then use the tools to look for broader patterns.</p>
     </div>
   `;
 }
@@ -629,8 +635,8 @@ function renderLogogramGuessSection(
 
   return `
     <div class="logogram-guess-section">
-      <p class="section-helper-text">If you think the selected sign is a whole word, choose it here.</p>
-      <label class="logogram-guess-label" for="logogram-guess-select">Whole-word guess</label>
+      ${puzzle.hasSyllabicSigns ? `<p class="section-helper-text">If you think the selected sign is a whole word, choose it here.</p>` : ""}
+      <label class="logogram-guess-label" for="logogram-guess-select">Whole word guess</label>
       <select
         id="logogram-guess-select"
         class="logogram-guess-select"
@@ -660,19 +666,11 @@ function getLevel0TutorialCopy(
   }
 
   if (!tutorialState.hasCompletedFirstSignGuide) {
-    if (tutorialState.firstGuessMisstep) {
-      return {
-        banner: "Choose guard for this first sign.",
-        title: "First clue",
-        text: "For this first step, choose guard so you can see how a whole-word guess appears across the tablet.",
-      };
-    }
-
     if (tutorialState.hasSelectedFirstSignGuideTarget) {
       return {
         banner: "Open Hypothesis and choose a possible meaning for the selected sign.",
         title: "First clue",
-        text: "This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word. Click on the Hypothesis tab to guess what this sign represents.",
+        text: `This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word.<br /><span class="tutorial-emphasis">Use the Whole word guess menu to choose what you think this sign means.</span>`,
       };
     }
 
@@ -687,15 +685,18 @@ function getLevel0TutorialCopy(
     return {
       banner: "Start by clicking the first sign in line 1.",
       title: "How to read this tablet",
-      text: "Start with the first sign in the tablet. Click the first sign in line 1.",
-    };
-  }
+      text: "The blue outlined sign appears more than once. Click it to highlight every matching sign.",
+      };
+    }
 
-  if (tutorialState.hasMadeFirstGuess && tutorialState.changesSinceBestCorrect >= 4) {
+  if (
+    correctCount < 4
+    && tutorialState.activeStuckHintBestCorrectCount === tutorialState.bestCorrectCount
+  ) {
     return {
-      banner: "Pause and compare sentence positions before changing more guesses.",
-      title: "Compare positions",
-      text: "The middle sign is usually the action. Try solving one repeated middle sign before changing more guesses.",
+      banner: "A useful next step is to solve a repeated middle sign.",
+      title: "How to read this tablet",
+      text: "A useful next step is to solve a repeated middle sign. Middle signs usually describe actions, so test one action word across every line where that sign appears.",
     };
   }
 
@@ -703,15 +704,15 @@ function getLevel0TutorialCopy(
     return {
       banner: "Choose a possible meaning for this sign, or click another sign to gather more evidence.",
       title: "Compare positions",
-      text: "Look at where this sign appears. First and last signs are often people or things. Middle signs are often actions.",
+      text: "Look at where this sign appears. First and last signs are often people or things. Middle signs are often actions. Use that pattern to choose a possible meaning.",
     };
   }
 
   if (tutorialState.hasMadeFirstGuess) {
     return {
-      banner: "Click another repeated sign and compare where it appears.",
+      banner: "Click another repeated sign. Its position can help you guess what kind of word it is.",
       title: "Testing a guess",
-      text: "Your guess now appears under matching signs. It does not need to be final. Keep comparing signs, positions, and sentence patterns.",
+      text: "Your guess now appears under every matching sign. It does not need to be final. You can revise guesses as new evidence appears. Repeated position can help you decide whether a sign is a person, thing, or action.",
     };
   }
 
@@ -742,7 +743,7 @@ function getLevel0TutorialCopy(
   return {
     banner: "Open Hypothesis and choose a possible meaning for the selected sign.",
     title: "First clue",
-    text: "This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word. Click on the Hypothesis tab to guess what this sign represents.",
+    text: `This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word.<br /><span class="tutorial-emphasis">Use the Whole word guess menu to choose what you think this sign means.</span>`,
   };
 }
 
@@ -766,15 +767,41 @@ function renderLevel0TutorialPanel(
   `;
 }
 
-function getVisibleTabs(puzzle: Puzzle): Array<"instructions" | "hypothesis" | "tools" | "lexicon"> {
+function renderLevel0OpeningScreen(): string {
+  return `
+    <main class="opening-screen" aria-labelledby="opening-title">
+      <section class="opening-panel">
+        <h1 id="opening-title">The Yot Tablet</h1>
+        <p>You have been handed a tablet written in the ancient Yot script.</p>
+        <p>You can speak Yot, but you have never seen the language written down. The words are familiar. The signs are not.</p>
+        <p>This first tablet uses logograms: signs that stand for whole words.<br />If the same sign appears in more than one place, it means the same word each time.</p>
+        <p><strong>Goal:</strong> Decipher the tablet by figuring out what each sign means.</p>
+        <button class="opening-begin-btn" type="button" data-action="begin-level0">Begin decipherment</button>
+      </section>
+    </main>
+  `;
+}
+
+function getVisibleTabs(
+  puzzle: Puzzle,
+  level0TutorialState: Level0TutorialState,
+): Array<"instructions" | "hypothesis" | "tools" | "lexicon"> {
+  if (puzzle.id === "level0" && !level0TutorialState.hasCompletedFirstSignGuide) {
+    return ["hypothesis", "lexicon"];
+  }
+
   return puzzle.hasSyllabicSigns
     ? ["instructions", "hypothesis", "tools", "lexicon"]
     : ["instructions", "hypothesis", "lexicon"];
 }
 
-function getRenderableTab(state: AppState, puzzle: Puzzle): "instructions" | "hypothesis" | "tools" | "lexicon" {
-  const visibleTabs = getVisibleTabs(puzzle);
-  return visibleTabs.includes(state.selectedTab) ? state.selectedTab : "instructions";
+function getRenderableTab(
+  state: AppState,
+  puzzle: Puzzle,
+  level0TutorialState: Level0TutorialState,
+): "instructions" | "hypothesis" | "tools" | "lexicon" {
+  const visibleTabs = getVisibleTabs(puzzle, level0TutorialState);
+  return visibleTabs.includes(state.selectedTab) ? state.selectedTab : visibleTabs[0];
 }
 
 function renderTabButton(tabName: "instructions" | "hypothesis" | "tools" | "lexicon", isActive: boolean): string {
@@ -816,6 +843,13 @@ function renderCorpusHeader(
   const totalCorrectSigns = getTotalCorrectSigns(puzzle);
   const bannerText = getBannerText(puzzle, correctCount, totalCorrectSigns, level0TutorialState, selectedSignId);
   const tutorialHeaderClass = puzzle.hasSyllabicSigns ? "" : " pane-header-corpus-tutorial";
+  const bannerMarkup = puzzle.id === "level0" && !level0TutorialState.hasCompletedFirstSignGuide
+    ? ""
+    : `
+      <div class="corpus-banner">
+        ${bannerText}
+      </div>
+    `;
 
   return `
     <header class="pane-header pane-header-corpus${tutorialHeaderClass}">
@@ -826,22 +860,24 @@ function renderCorpusHeader(
           <p>Vertical lines mark word breaks.</p>
         </div>
       </div>
-      <div class="corpus-banner">
-        ${bannerText}
-      </div>
+      ${bannerMarkup}
     </header>
   `;
 }
 
 export function renderApp(state: AppState): string {
   const puzzle = getActivePuzzle(state);
+  if (puzzle.id === "level0" && !state.hasStartedLevel0) {
+    return renderLevel0OpeningScreen();
+  }
+
   const progress = getActiveProgress(state);
   const level0TutorialState = getLevel0TutorialState(state);
   const correctCount = getCorrectCount(state, puzzle);
   const totalCorrectSigns = getTotalCorrectSigns(puzzle);
   const solved = isSolved(state, puzzle);
   const selectedSignId = solved ? null : state.selectedSignId;
-  const activeTab = getRenderableTab(state, puzzle);
+  const activeTab = getRenderableTab(state, puzzle, level0TutorialState);
   const emphasizeFirstGuideTarget = puzzle.id === "level0"
     && !solved
     && !level0TutorialState.hasCompletedFirstSignGuide
@@ -862,7 +898,7 @@ export function renderApp(state: AppState): string {
     )
     .join("");
 
-  const visibleTabs = getVisibleTabs(puzzle);
+  const visibleTabs = getVisibleTabs(puzzle, level0TutorialState);
   const instructionsActive = activeTab === "instructions";
   const toolsActive = activeTab === "tools";
   const hypothesisActive = activeTab === "hypothesis";

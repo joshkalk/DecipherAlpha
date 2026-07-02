@@ -8,14 +8,22 @@ const level0FirstGuideTarget = {
   wordIndex: "0",
   signIndex: "0",
 };
+const level0StuckHintGuessThreshold = 5;
+const level0StuckHintCorrectLimit = 4;
 
 function isTabVisibleForActiveLevel(state: AppState, tabName: RightPaneTab): boolean {
-  return getActivePuzzle(state).hasSyllabicSigns || tabName !== "tools";
+  if (!getActivePuzzle(state).hasSyllabicSigns && tabName === "tools") {
+    return false;
+  }
+
+  return state.activeLevelId !== "level0"
+    || tabName !== "instructions"
+    || getLevel0TutorialState(state).hasCompletedFirstSignGuide;
 }
 
 function moveHiddenTabToVisibleTab(state: AppState): void {
   if (!isTabVisibleForActiveLevel(state, state.selectedTab)) {
-    state.selectedTab = "instructions";
+    state.selectedTab = isTabVisibleForActiveLevel(state, "instructions") ? "instructions" : "hypothesis";
   }
 }
 
@@ -63,6 +71,7 @@ function trackLevel0GuessChange(state: AppState): void {
 
   tutorialState.guessChangeCount++;
   tutorialState.hasMadeFirstGuess = true;
+  tutorialState.activeStuckHintBestCorrectCount = null;
 
   if (correctCount > tutorialState.bestCorrectCount) {
     tutorialState.bestCorrectCount = correctCount;
@@ -71,13 +80,26 @@ function trackLevel0GuessChange(state: AppState): void {
     tutorialState.changesSinceBestCorrect++;
   }
 
+  const shouldShowStuckHint = state.hasStartedLevel0
+    && tutorialState.hasCompletedFirstSignGuide
+    && !isSolved(state)
+    && correctCount < level0StuckHintCorrectLimit
+    && tutorialState.guessChangeCount >= level0StuckHintGuessThreshold
+    && tutorialState.changesSinceBestCorrect >= level0StuckHintGuessThreshold
+    && tutorialState.lastStuckHintBestCorrectCount !== tutorialState.bestCorrectCount;
+
+  if (shouldShowStuckHint) {
+    tutorialState.activeStuckHintBestCorrectCount = tutorialState.bestCorrectCount;
+    tutorialState.lastStuckHintBestCorrectCount = tutorialState.bestCorrectCount;
+  }
+
   if (isSolved(state)) {
     state.hasCompletedLevel0 = true;
   }
 }
 
-function completeFirstGuideIfNeeded(state: AppState, guessedWord: string): void {
-  if (state.activeLevelId !== "level0" || guessedWord !== "guard") {
+function completeFirstGuideIfNeeded(state: AppState): void {
+  if (state.activeLevelId !== "level0") {
     return;
   }
 
@@ -87,7 +109,6 @@ function completeFirstGuideIfNeeded(state: AppState, guessedWord: string): void 
   }
 
   tutorialState.hasCompletedFirstSignGuide = true;
-  tutorialState.firstGuessMisstep = false;
 }
 
 function resetLevel1Progress(state: AppState): void {
@@ -131,6 +152,14 @@ export function setupEvents(
     const progress = getActiveProgress(state);
     const solved = isSolved(state, puzzle);
 
+    const beginButton = target.closest("[data-action='begin-level0']");
+    if (beginButton instanceof HTMLElement && state.activeLevelId === "level0") {
+      state.hasStartedLevel0 = true;
+      moveHiddenTabToVisibleTab(state);
+      render();
+      return;
+    }
+
     // Handle tab switching
     const tabButton = target.closest("[data-tab]");
     if (tabButton instanceof HTMLElement) {
@@ -168,8 +197,12 @@ export function setupEvents(
     // Clear whichever hypothesis is active for the selected sign.
     const clearBtn = target.closest("[data-action='clear-hypothesis']");
     if (clearBtn instanceof HTMLElement && state.selectedSignId) {
+      const hadLogogramGuess = Boolean(progress.logogramGuesses[state.selectedSignId]);
       clearSelectedSignFromSyllabicMap();
       delete progress.logogramGuesses[state.selectedSignId];
+      if (hadLogogramGuess) {
+        trackLevel0GuessChange(state);
+      }
       render();
       return;
     }
@@ -253,15 +286,6 @@ export function setupEvents(
       return;
     }
 
-    if (isLevel0FirstGuideActive(state)) {
-      const tutorialState = getLevel0TutorialState(state);
-      if (state.selectedSignId !== level0FirstGuideTarget.signId || target.value !== "guard") {
-        tutorialState.firstGuessMisstep = true;
-        render();
-        return;
-      }
-    }
-
     clearSelectedSignFromSyllabicMap();
 
     if (target.value) {
@@ -270,9 +294,12 @@ export function setupEvents(
       delete progress.logogramGuesses[state.selectedSignId];
     }
 
-    if (target.value) {
+    if (state.activeLevelId === "level0") {
       trackLevel0GuessChange(state);
-      completeFirstGuideIfNeeded(state, target.value);
+    }
+
+    if (target.value) {
+      completeFirstGuideIfNeeded(state);
     }
 
     render();

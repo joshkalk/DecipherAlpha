@@ -36,14 +36,16 @@ export type Level0TutorialState = {
   guessChangeCount: number;
   bestCorrectCount: number;
   changesSinceBestCorrect: number;
+  activeStuckHintBestCorrectCount: number | null;
+  lastStuckHintBestCorrectCount: number | null;
   hasSelectedFirstSignGuideTarget: boolean;
   hasCompletedFirstSignGuide: boolean;
   firstSignMisclick: boolean;
-  firstGuessMisstep: boolean;
 };
 
 export type AppState = {
   activeLevelId: LevelId;
+  hasStartedLevel0: boolean;
   selectedTab: RightPaneTab;
   selectedSignId: string | null;
   progressByLevel: Record<LevelId, LevelProgress>;
