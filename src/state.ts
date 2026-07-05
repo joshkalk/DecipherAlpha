@@ -1,4 +1,4 @@
-import type { AppState, Level0TutorialState, LevelProgress } from "./types";
+import type { AppState, Level0TutorialState, Level1GuidanceState, LevelProgress } from "./types";
 
 function createEmptyProgress(): LevelProgress {
   return {
@@ -22,9 +22,22 @@ function createLevel0TutorialState(): Level0TutorialState {
   };
 }
 
+function createLevel1GuidanceState(): Level1GuidanceState {
+  return {
+    hasOpenedLexicon: false,
+    hasOpenedTools: false,
+    guessChangeCount: 0,
+    bestCorrectCount: 0,
+    changesSinceBestCorrect: 0,
+    activeStuckHintBestCorrectCount: null,
+    lastStuckHintBestCorrectCount: null,
+  };
+}
+
 export const initialState: AppState = {
   activeLevelId: "level0",
   hasStartedLevel0: false,
+  isShowingLevel1Transition: false,
   selectedTab: "instructions",
   selectedSignId: null,
   progressByLevel: {
@@ -33,6 +46,7 @@ export const initialState: AppState = {
   },
   tutorialState: {
     level0: createLevel0TutorialState(),
+    level1: createLevel1GuidanceState(),
   },
   hasCompletedLevel0: false,
   arrivedFromLevel0: false,
@@ -44,4 +58,8 @@ export function getActiveProgress(state: AppState): LevelProgress {
 
 export function getLevel0TutorialState(state: AppState): Level0TutorialState {
   return state.tutorialState.level0;
+}
+
+export function getLevel1GuidanceState(state: AppState): Level1GuidanceState {
+  return state.tutorialState.level1;
 }

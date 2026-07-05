@@ -1,6 +1,6 @@
 import { getActivePuzzle, getCorrectCount, getTotalCorrectSigns, isSolved } from "./data";
 import { getActiveProgress, getLevel0TutorialState } from "./state";
-import type { AppState, Inscription, Level0TutorialState, LexiconEntry, Puzzle } from "./types";
+import type { AppState, Inscription, Level0TutorialState, Level1GuidanceState, LexiconEntry, Puzzle } from "./types";
 
 const glyphModules = import.meta.glob<string>("./assets/Glyphs/*.png", {
   eager: true,
@@ -37,6 +37,11 @@ type CorpusSignContext = {
 
 type Level0TutorialCopy = {
   banner: string;
+  title: string;
+  text: string;
+};
+
+type GuidanceCopy = {
   title: string;
   text: string;
 };
@@ -183,30 +188,82 @@ function renderInscription(
 }
 
 function renderLexicon(puzzle: Puzzle): string {
-  const rows = puzzle.lexicon
-    .map(
-      (entry) => `
+  const groups = new Map<number, LexiconEntry[]>();
+
+  puzzle.lexicon.forEach((entry) => {
+    const syllableCount = entry.yot.split("-").length;
+    const entries = groups.get(syllableCount) ?? [];
+    entries.push(entry);
+    groups.set(syllableCount, entries);
+  });
+
+  return Array.from(groups.entries())
+    .sort(([countA], [countB]) => countA - countB)
+    .map(([syllableCount, entries]) => {
+      const rows = entries
+        .sort((entryA, entryB) => entryA.english.localeCompare(entryB.english))
+        .map(
+          (entry) => `
       <tr>
         <td class="lex-col-english">${entry.english}</td>
-        <td class="lex-col-yot">${entry.yot}</td>
+        <td class="lex-col-yot">${renderYotSyllableChips(entry.yot)}</td>
       </tr>
     `
-    )
+        )
+        .join("");
+
+      return `
+        <section class="lexicon-group" aria-labelledby="lexicon-group-${syllableCount}">
+          <h4 id="lexicon-group-${syllableCount}">${syllableCount}-syllable words</h4>
+          <p class="lexicon-group-cue">${getLexiconGroupCue(syllableCount)}</p>
+          <table class="lexicon-table">
+            <thead>
+              <tr>
+                <th class="lex-col-english">English</th>
+                <th class="lex-col-yot">Yot</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </section>
+      `;
+    })
+    .join("");
+}
+
+function getLexiconGroupCue(syllableCount: number): string {
+  if (syllableCount === 1) {
+    return "These can match short one-sign Yot words, but a single sign may also be a whole-word sign.";
+  }
+
+  if (syllableCount === 2) {
+    return "These are useful candidates when you see a two-sign word in the stele.";
+  }
+
+  if (syllableCount === 3) {
+    return "These are useful candidates when you see a three-sign word in the stele.";
+  }
+
+  return "These are useful candidates when you see a word with this many signs in the stele.";
+}
+
+function renderYotSyllableChips(yot: string): string {
+  const chips = yot
+    .split("-")
+    .map((syllable) => `<span class="syllable-chip" aria-hidden="true">${syllable}</span>`)
     .join("");
 
-  return `
-    <table class="lexicon-table">
-      <thead>
-        <tr>
-          <th class="lex-col-english">English</th>
-          <th class="lex-col-yot">Yot</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
-  `;
+  return `<span class="syllable-chip-list" aria-label="${yot}">${chips}</span>`;
+}
+
+function getLexiconHelperText(puzzle: Puzzle): string {
+  if (!puzzle.hasSyllabicSigns) {
+    return "These are possible Yot words. The tutorial tablet uses whole-word signs, so you may not need this tab yet.";
+  }
+
+  return "The Lexicon lists possible Yot words and their syllable spellings. Hyphens separate syllables. Use this tab to compare multi-sign words in the stele against possible Yot spellings. Not every word listed here appears in the stele.";
 }
 
 // Extract all unique signs from corpus in first-appearance order.
@@ -273,31 +330,6 @@ function getUnigramFrequency(corpus: Inscription[]): Array<{ sign: string; count
     });
 }
 
-// Count bigrams (adjacent sign pairs)
-function getBigramFrequency(corpus: Inscription[]): Array<{ left: string; right: string; count: number }> {
-  const freq: Record<string, number> = {};
-
-  corpus.forEach((inscription) => {
-    const stream = getSignStream(inscription);
-    for (let i = 0; i < stream.length - 1; i++) {
-      const key = `${stream[i]}|${stream[i + 1]}`;
-      freq[key] = (freq[key] ?? 0) + 1;
-    }
-  });
-
-  return Object.entries(freq)
-    .map(([key, count]) => {
-      const [left, right] = key.split("|");
-      return { left, right, count };
-    })
-    .sort((a, b) => {
-      // Sort by count descending, then alphabetically
-      if (b.count !== a.count) return b.count - a.count;
-      if (a.left !== b.left) return a.left.localeCompare(b.left);
-      return a.right.localeCompare(b.right);
-    });
-}
-
 function renderSignInventory(puzzle: Puzzle, selectedSignId: string | null): string {
   const signs = getAllSigns(puzzle.corpus);
   const signsMarkup = signs
@@ -309,7 +341,7 @@ function renderSignInventory(puzzle: Puzzle, selectedSignId: string | null): str
 
   return `
     <div class="tools-section">
-      <p class="section-helper-text">Use these tools to compare repetition, position, and neighboring signs.</p>
+      <p class="section-helper-text">Use these tools to compare which signs appear, how often they repeat, and where they tend to sit in an inscription.</p>
       <h3>Sign Inventory</h3>
       <div class="sign-inventory-grid">
         ${signsMarkup}
@@ -391,40 +423,33 @@ function renderPositionalFrequency(puzzle: Puzzle, selectedSignId: string | null
   `;
 }
 
-function renderBigramFrequency(puzzle: Puzzle, selectedSignId: string | null): string {
-  const bigrams = getBigramFrequency(puzzle.corpus);
-  const rows = bigrams
-    .map((entry) => {
-      const leftHighlighted = entry.left === selectedSignId;
-      const rightHighlighted = entry.right === selectedSignId;
-      return `
-      <tr>
-        <td class="freq-col-bigram">${renderSign(entry.left, leftHighlighted)}${renderSign(entry.right, rightHighlighted)}</td>
-        <td class="freq-col-count">${entry.count}</td>
-      </tr>
-    `;
-    })
-    .join("");
+function formatSyllableForDisplay(cellId: string): string {
+  return cellId.replace("-", "");
+}
+
+function getCorpusObjectName(puzzle: Puzzle): string {
+  return puzzle.id === "level0" ? "tutorial tablet" : "stele";
+}
+
+function renderHypothesisIntro(puzzle: Puzzle): string {
+  if (puzzle.hasSyllabicSigns) {
+    return "";
+  }
+
+  const text = puzzle.hasSyllabicSigns
+    ? "A sign can be tested as either a whole-word guess or a syllable guess. Use the dropdown for a sign that stands for an entire word, or the syllable grid for a sign inside a longer Yot word. You can revise either kind of guess."
+    : "This tutorial tablet uses whole-word signs. Select a sign, choose a possible meaning, then revise if the evidence changes.";
 
   return `
-    <div class="tools-section">
-      <h3>Neighbor Pairs</h3>
-      <table class="frequency-table">
-        <thead>
-          <tr>
-            <th class="freq-col-bigram">Pair</th>
-            <th class="freq-col-count">Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
+    <div class="hypothesis-intro">
+      <h3>Test the selected sign</h3>
+      <p>${text}</p>
     </div>
   `;
 }
 
 function renderSelectedSignHeader(
+  puzzle: Puzzle,
   selectedSignId: string | null,
   syllabicMap: Record<string, string>,
   logogramGuesses: Record<string, string>,
@@ -436,7 +461,7 @@ function renderSelectedSignHeader(
         <div class="selected-sign-display">
           <div class="selected-sign-placeholder"></div>
         </div>
-        <p class="selected-sign-status">Select a sign to begin.</p>
+        <p class="selected-sign-status">Select a sign in the ${getCorpusObjectName(puzzle)} to make a hypothesis.</p>
       </div>
     `;
   }
@@ -446,11 +471,11 @@ function renderSelectedSignHeader(
     ? `<img class="selected-sign-image" src="${imagePath}" alt="${selectedSignId}" />`
     : `<span class="selected-sign-image-missing">${selectedSignId}</span>`;
 
-  let status = "No guess yet";
+  let status = "No hypothesis yet.";
   let hasGuess = false;
   for (const [cellId, signId] of Object.entries(syllabicMap)) {
     if (signId === selectedSignId) {
-      status = `Syllable: ${cellId}`;
+      status = `Syllable guess: ${formatSyllableForDisplay(cellId)}`;
       hasGuess = true;
       break;
     }
@@ -458,7 +483,7 @@ function renderSelectedSignHeader(
 
   const logogramGuess = logogramGuesses[selectedSignId];
   if (logogramGuess) {
-    status = `Logogram: ${logogramGuess}`;
+    status = `Whole-word guess: ${logogramGuess}`;
     hasGuess = true;
   }
   const clearButtonMarkup = hasGuess
@@ -480,7 +505,7 @@ function renderSelectedSignHeader(
 function renderLevel1BridgeMessage(): string {
   return `
     <div class="bridge-message" aria-label="Level 1 bridge">
-      <p>The next tablet is harder. Some signs are whole word logograms, and some signs are syllables. One sign is familiar from the tutorial: guard. Use that foothold, then use the tools to look for broader patterns.</p>
+      <p>The <strong>guard</strong> sign carried over from the tutorial tablet. Use that foothold, then compare repeated signs and word positions before making new guesses.</p>
     </div>
   `;
 }
@@ -492,8 +517,8 @@ function renderInstructions(puzzle: Puzzle, showLevel1Bridge: boolean): string {
         <h3>Instructions</h3>
 
         <div class="instructions-section">
-          <p>This tutorial tablet uses only logograms. Each sign stands for a whole word.</p>
-          <p>Click a sign in the tablet, then choose a possible meaning in the Hypothesis tab. Your guesses are temporary. If the evidence changes, you can change them.</p>
+          <p>This tutorial tablet uses only whole-word signs. Each sign stands for a whole word.</p>
+          <p>Click a sign in the tutorial tablet, then choose a possible meaning in the Hypothesis tab. Your guesses are temporary. If the evidence changes, you can change them.</p>
           <p>Use repeated signs and sentence position to test your guesses. First and last signs are often people or things. Middle signs are often actions.</p>
         </div>
       </div>
@@ -508,27 +533,28 @@ function renderInstructions(puzzle: Puzzle, showLevel1Bridge: boolean): string {
 
       <div class="instructions-section">
         <h4>Goal</h4>
-        <p>Decipher all 20 symbols in the Yot writing system.</p>
+        <p>Decipher all 20 signs in the Yot stele.</p>
       </div>
 
       <div class="instructions-section">
         <h4>The basic idea</h4>
         <ul class="instructions-list">
-          <li>The inscriptions on the left are your evidence.</li>
-          <li>This script mixes <strong>logograms</strong> (one symbol = one whole word) and <strong>syllabic signs</strong> (one symbol = one syllable).</li>
-          <li>Use repetition, word position, neighboring signs, and the lexicon to form hypotheses.</li>
+          <li>The stele text on the left is your evidence.</li>
+          <li>This script mixes <strong>whole-word signs</strong> (one sign = one word) and <strong>syllable signs</strong> (one sign = one syllable).</li>
+          <li>Use repetition, word position, and the Lexicon to form hypotheses.</li>
         </ul>
       </div>
 
       <div class="instructions-section">
         <h4>What to do</h4>
         <ol class="instructions-list instructions-list-numbered">
-          <li>Click any symbol in the corpus or Tools tab to highlight it.</li>
-          <li>Look for where it repeats and what signs appear around it.</li>
-          <li>Use the Tools tab to study frequency, position, and neighboring pairs.</li>
-          <li>Go to the Hypothesis tab to assign the selected symbol.</li>
-          <li>If you think it is syllabic, place it in the syllable grid.</li>
-          <li>If you think the symbol is a logogram, choose a word from the dropdown.</li>
+          <li>Click any sign in the corpus or Tools tab to highlight it.</li>
+          <li>Look for where it repeats and where it appears in each inscription.</li>
+          <li>Use the Tools tab to study the sign inventory, frequency, and position.</li>
+          <li>Go to the Hypothesis tab to assign the selected sign.</li>
+          <li>If you think it is a syllable sign, place it in the syllable grid.</li>
+          <li>If you think it is a whole-word sign, choose a word from the dropdown.</li>
+          <li>Each sign can hold one kind of guess at a time: syllable or whole-word. Choosing one clears the other.</li>
           <li>The corpus will update with your current guesses.</li>
           <li>Change your guesses whenever you want.</li>
         </ol>
@@ -538,17 +564,21 @@ function renderInstructions(puzzle: Puzzle, showLevel1Bridge: boolean): string {
         <h4>Remember</h4>
         <ul class="instructions-list">
           <li>Vertical lines in the corpus separate words.</li>
-          <li>Not every word in the lexicon appears in the corpus.</li>
+          <li>Not every word in the Lexicon appears in the corpus.</li>
           <li>You do not need to get everything right immediately.</li>
           <li>You will get a signal when you are close.</li>
-          <li>The puzzle is complete when all 20 symbols are identified correctly.</li>
+          <li>The puzzle is complete when all 20 signs are identified correctly.</li>
         </ul>
       </div>
     </div>
   `;
 }
 
-function renderCVGrid(syllabicMap: Record<string, string>): string {
+function renderCVGrid(
+  puzzle: Puzzle,
+  selectedSignId: string | null,
+  syllabicMap: Record<string, string>,
+): string {
   const rows = ["N", "M", "D", "K"];
   const cols = ["E", "O", "A"];
 
@@ -561,12 +591,13 @@ function renderCVGrid(syllabicMap: Record<string, string>): string {
       const cells = cols
         .map((col) => {
           const cellId = `${row}-${col}`;
+          const displaySyllable = formatSyllableForDisplay(cellId);
           const assignedSign = syllabicMap[cellId];
           const imageMarkup = assignedSign
-            ? `<img class="cv-cell-image" src="${signImagePath(assignedSign)}" alt="${cellId}" />`
+            ? `<img class="cv-cell-image" src="${signImagePath(assignedSign)}" alt="${displaySyllable}" />`
             : "";
 
-          return `<div class="cv-cell" data-cv-cell="${cellId}">${imageMarkup}<span class="cv-cell-label">${cellId}</span></div>`;
+          return `<div class="cv-cell" data-cv-cell="${cellId}" aria-label="Syllable ${displaySyllable}">${imageMarkup}<span class="cv-cell-label">${displaySyllable}</span></div>`;
         })
         .join("");
 
@@ -581,7 +612,9 @@ function renderCVGrid(syllabicMap: Record<string, string>): string {
 
   return `
     <div class="cv-grid-section">
-      <p class="section-helper-text">Place the selected sign in the syllable you think it represents.</p>
+      <h3>Syllable guess</h3>
+      <p class="section-helper-text">Use for signs inside longer Yot words.</p>
+      ${selectedSignId ? "" : `<p class="empty-state-text">Select a sign in the ${getCorpusObjectName(puzzle)} to assign it here.</p>`}
       <div class="cv-grid-container">
         <div class="cv-grid-header">
           <div class="cv-corner">Syllables</div>
@@ -635,8 +668,9 @@ function renderLogogramGuessSection(
 
   return `
     <div class="logogram-guess-section">
-      ${puzzle.hasSyllabicSigns ? `<p class="section-helper-text">If you think the selected sign is a whole word, choose it here.</p>` : ""}
-      <label class="logogram-guess-label" for="logogram-guess-select">Whole word guess</label>
+      <label class="logogram-guess-label" for="logogram-guess-select">Whole-word guess</label>
+      <p class="section-helper-text">Use for signs that stand alone as whole words.</p>
+      ${selectedSignId ? "" : `<p class="empty-state-text">Select a sign in the ${getCorpusObjectName(puzzle)} to assign it here.</p>`}
       <select
         id="logogram-guess-select"
         class="logogram-guess-select"
@@ -670,21 +704,21 @@ function getLevel0TutorialCopy(
       return {
         banner: "Open Hypothesis and choose a possible meaning for the selected sign.",
         title: "First clue",
-        text: `This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word.<br /><span class="tutorial-emphasis">Use the Whole word guess menu to choose what you think this sign means.</span>`,
+        text: `This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word.<br /><span class="tutorial-emphasis">Use the whole-word guess menu to choose what you think this sign means.</span>`,
       };
     }
 
     if (tutorialState.firstSignMisclick) {
       return {
         banner: "Start by clicking the first sign in line 1.",
-        title: "How to read this tablet",
+        title: "How to read this tutorial tablet",
         text: "For this first step, click the first sign in the first line.",
       };
     }
 
     return {
       banner: "Start by clicking the first sign in line 1.",
-      title: "How to read this tablet",
+      title: "How to read this tutorial tablet",
       text: "The blue outlined sign appears more than once. Click it to highlight every matching sign.",
       };
     }
@@ -695,7 +729,7 @@ function getLevel0TutorialCopy(
   ) {
     return {
       banner: "A useful next step is to solve a repeated middle sign.",
-      title: "How to read this tablet",
+      title: "How to read this tutorial tablet",
       text: "A useful next step is to solve a repeated middle sign. Middle signs usually describe actions, so test one action word across every line where that sign appears.",
     };
   }
@@ -726,7 +760,7 @@ function getLevel0TutorialCopy(
 
   if (correctCount >= 4) {
     return {
-      banner: "You have enough evidence to solve most of this tablet.",
+      banner: "You have enough evidence to solve most of this tutorial tablet.",
       title: "Compare positions",
       text: "Try solving repeated middle signs before changing more guesses.",
     };
@@ -743,7 +777,7 @@ function getLevel0TutorialCopy(
   return {
     banner: "Open Hypothesis and choose a possible meaning for the selected sign.",
     title: "First clue",
-    text: `This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word.<br /><span class="tutorial-emphasis">Use the Whole word guess menu to choose what you think this sign means.</span>`,
+    text: `This sign appears in the same position in more than one line. Repeated signs in repeated positions are strong candidates for the same word.<br /><span class="tutorial-emphasis">Use the whole-word guess menu to choose what you think this sign means.</span>`,
   };
 }
 
@@ -771,14 +805,135 @@ function renderLevel0OpeningScreen(): string {
   return `
     <main class="opening-screen" aria-labelledby="opening-title">
       <section class="opening-panel">
-        <h1 id="opening-title">The Yot Tablet</h1>
-        <p>You have been handed a tablet written in the ancient Yot script.</p>
+        <h1 id="opening-title">The Tutorial Tablet</h1>
+        <p>You have been handed a tutorial tablet written in the ancient Yot script.</p>
         <p>You can speak Yot, but you have never seen the language written down. The words are familiar. The signs are not.</p>
-        <p>This first tablet uses logograms: signs that stand for whole words.<br />If the same sign appears in more than one place, it means the same word each time.</p>
-        <p><strong>Goal:</strong> Decipher the tablet by figuring out what each sign means.</p>
+        <p>This tutorial tablet uses whole-word signs: signs that stand for whole words.<br />If the same sign appears in more than one place, it means the same word each time.</p>
+        <p><strong>Goal:</strong> Decipher the tutorial tablet by figuring out what each sign means.</p>
         <button class="opening-begin-btn" type="button" data-action="begin-level0">Begin decipherment</button>
       </section>
     </main>
+  `;
+}
+
+function renderLevel1TransitionScreen(): string {
+  return `
+    <main class="opening-screen" aria-labelledby="level1-transition-title">
+      <section class="opening-panel transition-panel">
+        <h1 id="level1-transition-title">Level 1: The Stele</h1>
+        <p>You solved the tutorial tablet. One sign carries forward: <strong>guard</strong>.</p>
+        <p>The next inscription is a <strong>stele</strong>, a carved monument with a longer, more complex text.</p>
+        <p><strong>Some signs are whole-word signs. Other signs are syllables.</strong> Syllables combine into words in the Yot language. Vertical lines separate words.</p>
+        <p>The <strong>Lexicon</strong> tab matters more now. Use it to compare multi-sign words in the stele against Yot spellings like <strong>NA-MO</strong>, <strong>DA-KE</strong>, or <strong>KO-ME</strong>.</p>
+        <p>Your guesses are still temporary. Test one idea, check how it changes the stele, then revise when the evidence points elsewhere.</p>
+        <button class="opening-begin-btn" type="button" data-action="begin-level1">Begin Level 1</button>
+      </section>
+    </main>
+  `;
+}
+
+function doesSignAppearInMultiSignWord(puzzle: Puzzle, signId: string | null): boolean {
+  if (!signId) {
+    return false;
+  }
+
+  return puzzle.corpus.some((inscription) =>
+    inscription.words.some((word) => word.length > 1 && word.includes(signId)),
+  );
+}
+
+function getLevel1GuidanceCopy(
+  puzzle: Puzzle,
+  guidanceState: Level1GuidanceState,
+  selectedSignId: string | null,
+  correctCount: number,
+  totalCorrectSigns: number,
+  syllabicMap: Record<string, string>,
+): GuidanceCopy {
+  if (correctCount === totalCorrectSigns) {
+    return {
+      title: "Stele deciphered",
+      text: "Every sign now has a working reading. The mixed system is resolved.",
+    };
+  }
+
+  if (correctCount >= Math.max(totalCorrectSigns - 4, 1)) {
+    return {
+      title: "Finish by checking conflicts",
+      text: "You are close. Look for signs with competing guesses, short words that might be one-syllable Yot words, and repeated multi-sign words that almost match the Lexicon.",
+    };
+  }
+
+  if (guidanceState.changesSinceBestCorrect >= 8 && !guidanceState.hasOpenedTools) {
+    return {
+      title: "Use the Lexicon if you are stuck",
+      text: "Look for a repeated multi-sign word in the stele. Compare its partial Yot reading with the Lexicon, then return here to test one sign.",
+    };
+  }
+
+  if (guidanceState.changesSinceBestCorrect >= 5) {
+    return {
+      title: "Pause and compare evidence",
+      text: "You may be changing guesses faster than the evidence supports. Pick one repeated multi-sign word, compare it with the Lexicon, and test one syllable at a time.",
+    };
+  }
+
+  if (correctCount >= 6) {
+    return {
+      title: "You have enough evidence now",
+      text: "Use your confirmed signs to attack repeated word shapes. The strongest path is usually: corpus pattern, Lexicon spelling, syllable-grid guess, then revision.",
+    };
+  }
+
+  if (Object.keys(syllabicMap).length > 0) {
+    return {
+      title: "Compare partial readings",
+      text: "Your syllable guesses now appear under matching signs in the corpus. Look for multi-sign words that are starting to resemble a Lexicon spelling, then revise one sign at a time.",
+    };
+  }
+
+  if (doesSignAppearInMultiSignWord(puzzle, selectedSignId)) {
+    return {
+      title: "Test this sign as a syllable",
+      text: "This sign appears inside a longer word. Try comparing the full word pattern against the Lexicon, then place the sign in the syllable grid if a Yot spelling seems to fit.",
+    };
+  }
+
+  if (!guidanceState.hasOpenedLexicon && guidanceState.guessChangeCount > 0) {
+    return {
+      title: "Check the Lexicon",
+      text: "Multi-sign words are the key to the syllabic layer. Open the Lexicon tab and compare words in the stele against Yot spellings like NA-MO, DA-KE, and KO-ME.",
+    };
+  }
+
+  return {
+    title: "Use guard as your foothold",
+    text: "Guard is already identified. Now look nearby: click a repeated sign, or check possible Yot words in the Lexicon.",
+  };
+}
+
+function renderLevel1GuidanceCard(
+  puzzle: Puzzle,
+  guidanceState: Level1GuidanceState,
+  selectedSignId: string | null,
+  correctCount: number,
+  totalCorrectSigns: number,
+  syllabicMap: Record<string, string>,
+): string {
+  const copy = getLevel1GuidanceCopy(
+    puzzle,
+    guidanceState,
+    selectedSignId,
+    correctCount,
+    totalCorrectSigns,
+    syllabicMap,
+  );
+
+  return `
+    <aside class="level1-guidance-card" aria-label="Level 1 guidance">
+      <h3>${copy.title}</h3>
+      <p>${copy.text}</p>
+    </aside>
   `;
 }
 
@@ -817,6 +972,7 @@ function getBannerText(
   correctCount: number,
   totalCorrectSigns: number,
   level0TutorialState: Level0TutorialState,
+  level1GuidanceState: Level1GuidanceState,
   selectedSignId: string | null,
 ): string {
   if (!puzzle.hasSyllabicSigns) {
@@ -824,25 +980,49 @@ function getBannerText(
   }
 
   if (correctCount === totalCorrectSigns) {
-    return "Decipherment Complete!";
+    return "Stele deciphered.";
   }
 
   if (correctCount >= Math.max(totalCorrectSigns - 4, 1)) {
     return `You are close: ${correctCount} of ${totalCorrectSigns} correct`;
   }
 
-  return `${correctCount} of ${totalCorrectSigns} correct`;
+  if (
+    level1GuidanceState.activeStuckHintBestCorrectCount !== null
+    && level1GuidanceState.activeStuckHintBestCorrectCount === level1GuidanceState.bestCorrectCount
+  ) {
+    return "Stuck? Compare one repeated multi-sign word with the Lexicon.";
+  }
+
+  if (correctCount === 1) {
+    return "Guard identified. Use it as your foothold.";
+  }
+
+  if (correctCount < 6) {
+    return "Keep separating whole-word signs from syllable signs.";
+  }
+
+  return "Use confirmed signs to test repeated word shapes.";
 }
 
 function renderCorpusHeader(
   puzzle: Puzzle,
   correctCount: number,
   level0TutorialState: Level0TutorialState,
+  level1GuidanceState: Level1GuidanceState,
   selectedSignId: string | null,
 ): string {
   const totalCorrectSigns = getTotalCorrectSigns(puzzle);
-  const bannerText = getBannerText(puzzle, correctCount, totalCorrectSigns, level0TutorialState, selectedSignId);
+  const bannerText = getBannerText(
+    puzzle,
+    correctCount,
+    totalCorrectSigns,
+    level0TutorialState,
+    level1GuidanceState,
+    selectedSignId,
+  );
   const tutorialHeaderClass = puzzle.hasSyllabicSigns ? "" : " pane-header-corpus-tutorial";
+  const corpusTitle = puzzle.id === "level1" ? "Yot Stele" : "Tutorial Tablet";
   const bannerMarkup = puzzle.id === "level0" && !level0TutorialState.hasCompletedFirstSignGuide
     ? ""
     : `
@@ -850,14 +1030,21 @@ function renderCorpusHeader(
         ${bannerText}
       </div>
     `;
+  const levelSwitcherMarkup = `
+    <div class="level-switcher" aria-label="Level selection">
+      <button class="level-switch-btn${puzzle.id === "level0" ? " is-active" : ""}" type="button" data-level-id="level0">Tutorial Tablet</button>
+      <button class="level-switch-btn${puzzle.id === "level1" ? " is-active" : ""}" type="button" data-level-id="level1">Level 1 Stele</button>
+    </div>
+  `;
 
   return `
     <header class="pane-header pane-header-corpus${tutorialHeaderClass}">
       <div class="pane-header-copy">
-        <h1 id="corpus-heading">Yot Inscriptions</h1>
+        <h1 id="corpus-heading">${corpusTitle}</h1>
         <div class="pane-helper-text">
           <p>Click a sign to highlight matching signs across the inscriptions.</p>
           <p>Vertical lines mark word breaks.</p>
+          ${levelSwitcherMarkup}
         </div>
       </div>
       ${bannerMarkup}
@@ -866,6 +1053,10 @@ function renderCorpusHeader(
 }
 
 export function renderApp(state: AppState): string {
+  if (state.isShowingLevel1Transition) {
+    return renderLevel1TransitionScreen();
+  }
+
   const puzzle = getActivePuzzle(state);
   if (puzzle.id === "level0" && !state.hasStartedLevel0) {
     return renderLevel0OpeningScreen();
@@ -873,6 +1064,7 @@ export function renderApp(state: AppState): string {
 
   const progress = getActiveProgress(state);
   const level0TutorialState = getLevel0TutorialState(state);
+  const level1GuidanceState = state.tutorialState.level1;
   const correctCount = getCorrectCount(state, puzzle);
   const totalCorrectSigns = getTotalCorrectSigns(puzzle);
   const solved = isSolved(state, puzzle);
@@ -884,7 +1076,14 @@ export function renderApp(state: AppState): string {
     && !level0TutorialState.hasSelectedFirstSignGuideTarget;
   const tutorialPanelMarkup = puzzle.id === "level0"
     ? renderLevel0TutorialPanel(level0TutorialState, selectedSignId, correctCount, totalCorrectSigns)
-    : "";
+    : renderLevel1GuidanceCard(
+        puzzle,
+        level1GuidanceState,
+        selectedSignId,
+        correctCount,
+        totalCorrectSigns,
+        progress.syllabicMap,
+      );
   const corpusMarkup = puzzle.corpus
     .map((inscription) =>
       renderInscription(
@@ -907,7 +1106,7 @@ export function renderApp(state: AppState): string {
   return `
     <main class="app-shell${solved ? " is-solved" : ""}" aria-label="Decipherment alpha layout">
       <section class="pane pane-corpus${solved ? " is-solved" : ""}" aria-labelledby="corpus-heading">
-        ${renderCorpusHeader(puzzle, correctCount, level0TutorialState, selectedSignId)}
+        ${renderCorpusHeader(puzzle, correctCount, level0TutorialState, level1GuidanceState, selectedSignId)}
 
         <div class="pane-body pane-body-corpus">
           ${corpusMarkup}
@@ -931,9 +1130,10 @@ export function renderApp(state: AppState): string {
           </section>
 
           <section class="panel${hypothesisActive ? " is-active" : ""}" aria-label="Hypothesis panel"${hypothesisActive ? ' role="tabpanel"' : ""}>
-            ${renderSelectedSignHeader(selectedSignId, progress.syllabicMap, progress.logogramGuesses)}
-            ${puzzle.hasSyllabicSigns ? renderCVGrid(progress.syllabicMap) : ""}
+            ${renderHypothesisIntro(puzzle)}
+            ${renderSelectedSignHeader(puzzle, selectedSignId, progress.syllabicMap, progress.logogramGuesses)}
             ${renderLogogramGuessSection(puzzle, selectedSignId, progress.logogramGuesses)}
+            ${puzzle.hasSyllabicSigns ? renderCVGrid(puzzle, selectedSignId, progress.syllabicMap) : ""}
           </section>
 
           ${puzzle.hasSyllabicSigns ? `
@@ -941,13 +1141,12 @@ export function renderApp(state: AppState): string {
               ${renderSignInventory(puzzle, selectedSignId)}
               ${renderUnigramFrequency(puzzle, selectedSignId)}
               ${renderPositionalFrequency(puzzle, selectedSignId)}
-              ${renderBigramFrequency(puzzle, selectedSignId)}
             </section>
           ` : ""}
 
           <section class="panel${lexiconActive ? " is-active" : ""}" aria-label="Lexicon panel"${lexiconActive ? ' role="tabpanel"' : ""}>
             <h3>Lexicon</h3>
-            <p class="section-helper-text">These are possible Yot words. Not all of them appear in the inscriptions.</p>
+            <p class="section-helper-text">${getLexiconHelperText(puzzle)}</p>
             ${renderLexicon(puzzle)}
           </section>
         </div>
