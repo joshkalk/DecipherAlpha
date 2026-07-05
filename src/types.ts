@@ -43,14 +43,26 @@ export type Level0TutorialState = {
   firstSignMisclick: boolean;
 };
 
+export type Level1GuidanceState = {
+  hasOpenedLexicon: boolean;
+  hasOpenedTools: boolean;
+  guessChangeCount: number;
+  bestCorrectCount: number;
+  changesSinceBestCorrect: number;
+  activeStuckHintBestCorrectCount: number | null;
+  lastStuckHintBestCorrectCount: number | null;
+};
+
 export type AppState = {
   activeLevelId: LevelId;
   hasStartedLevel0: boolean;
+  isShowingLevel1Transition: boolean;
   selectedTab: RightPaneTab;
   selectedSignId: string | null;
   progressByLevel: Record<LevelId, LevelProgress>;
   tutorialState: {
     level0: Level0TutorialState;
+    level1: Level1GuidanceState;
   };
   hasCompletedLevel0: boolean;
   arrivedFromLevel0: boolean;

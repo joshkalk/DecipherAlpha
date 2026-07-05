@@ -1,5 +1,5 @@
 import { getActivePuzzle, getCorrectCount, isSolved } from "./data";
-import { getActiveProgress, getLevel0TutorialState } from "./state";
+import { getActiveProgress, getLevel0TutorialState, getLevel1GuidanceState } from "./state";
 import type { AppState, LevelId, RightPaneTab } from "./types";
 
 const level0FirstGuideTarget = {
@@ -10,6 +10,9 @@ const level0FirstGuideTarget = {
 };
 const level0StuckHintGuessThreshold = 5;
 const level0StuckHintCorrectLimit = 4;
+const level1StuckHintGuessThreshold = 10;
+const level1StuckHintCorrectLimit = 4;
+const level1StuckHintChangesSinceBestThreshold = 5;
 
 function isTabVisibleForActiveLevel(state: AppState, tabName: RightPaneTab): boolean {
   if (!getActivePuzzle(state).hasSyllabicSigns && tabName === "tools") {
@@ -98,6 +101,37 @@ function trackLevel0GuessChange(state: AppState): void {
   }
 }
 
+function trackLevel1GuessChange(state: AppState): void {
+  if (state.activeLevelId !== "level1") {
+    return;
+  }
+
+  const guidanceState = getLevel1GuidanceState(state);
+  const correctCount = getCorrectCount(state);
+
+  guidanceState.guessChangeCount++;
+  guidanceState.activeStuckHintBestCorrectCount = null;
+
+  if (correctCount > guidanceState.bestCorrectCount) {
+    guidanceState.bestCorrectCount = correctCount;
+    guidanceState.changesSinceBestCorrect = 0;
+  } else {
+    guidanceState.changesSinceBestCorrect++;
+  }
+
+  const shouldShowStuckHint = state.activeLevelId === "level1"
+    && !isSolved(state)
+    && correctCount < level1StuckHintCorrectLimit
+    && guidanceState.guessChangeCount >= level1StuckHintGuessThreshold
+    && guidanceState.changesSinceBestCorrect >= level1StuckHintChangesSinceBestThreshold
+    && guidanceState.lastStuckHintBestCorrectCount !== guidanceState.bestCorrectCount;
+
+  if (shouldShowStuckHint) {
+    guidanceState.activeStuckHintBestCorrectCount = guidanceState.bestCorrectCount;
+    guidanceState.lastStuckHintBestCorrectCount = guidanceState.bestCorrectCount;
+  }
+}
+
 function completeFirstGuideIfNeeded(state: AppState): void {
   if (state.activeLevelId !== "level0") {
     return;
@@ -118,13 +152,31 @@ function resetLevel1Progress(state: AppState): void {
   };
 }
 
-function continueToLevel1(state: AppState): void {
+function resetLevel1GuidanceState(state: AppState): void {
+  const guidanceState = getLevel1GuidanceState(state);
+  guidanceState.hasOpenedLexicon = false;
+  guidanceState.hasOpenedTools = false;
+  guidanceState.guessChangeCount = 0;
+  guidanceState.bestCorrectCount = getCorrectCount(state);
+  guidanceState.changesSinceBestCorrect = 0;
+  guidanceState.activeStuckHintBestCorrectCount = null;
+  guidanceState.lastStuckHintBestCorrectCount = null;
+}
+
+function showLevel1Transition(state: AppState): void {
   state.hasCompletedLevel0 = true;
+  state.isShowingLevel1Transition = true;
+}
+
+function beginLevel1(state: AppState): void {
+  state.isShowingLevel1Transition = false;
   state.arrivedFromLevel0 = true;
   state.activeLevelId = "level1";
-  state.selectedTab = "instructions";
-  state.selectedSignId = null;
   resetLevel1Progress(state);
+  state.progressByLevel.level1.logogramGuesses.guard = "guard";
+  resetLevel1GuidanceState(state);
+  state.selectedTab = "hypothesis";
+  state.selectedSignId = "guard";
 }
 
 export function setupEvents(
@@ -160,12 +212,28 @@ export function setupEvents(
       return;
     }
 
+    const beginLevel1Button = target.closest("[data-action='begin-level1']");
+    if (beginLevel1Button instanceof HTMLElement && state.isShowingLevel1Transition) {
+      beginLevel1(state);
+      render();
+      return;
+    }
+
     // Handle tab switching
     const tabButton = target.closest("[data-tab]");
     if (tabButton instanceof HTMLElement) {
       const tabName = tabButton.getAttribute("data-tab") as RightPaneTab;
       if (tabName && isTabVisibleForActiveLevel(state, tabName)) {
         state.selectedTab = tabName;
+        if (state.activeLevelId === "level1") {
+          const guidanceState = getLevel1GuidanceState(state);
+          if (tabName === "lexicon") {
+            guidanceState.hasOpenedLexicon = true;
+          }
+          if (tabName === "tools") {
+            guidanceState.hasOpenedTools = true;
+          }
+        }
         render();
       }
       return;
@@ -174,6 +242,21 @@ export function setupEvents(
     const levelButton = target.closest("[data-level-id]");
     if (levelButton instanceof HTMLElement) {
       const levelId = levelButton.getAttribute("data-level-id") as LevelId | null;
+      if (levelId === "level0") {
+        state.isShowingLevel1Transition = false;
+        state.activeLevelId = "level0";
+        state.hasStartedLevel0 = false;
+        state.selectedSignId = null;
+        moveHiddenTabToVisibleTab(state);
+        render();
+        return;
+      }
+      if (levelId === "level1") {
+        state.isShowingLevel1Transition = true;
+        state.selectedSignId = null;
+        render();
+        return;
+      }
       if (levelId && levelId !== state.activeLevelId) {
         state.activeLevelId = levelId;
         state.selectedSignId = null;
@@ -185,7 +268,7 @@ export function setupEvents(
 
     const continueButton = target.closest("[data-action='continue-level1']");
     if (continueButton instanceof HTMLElement && puzzle.id === "level0" && solved) {
-      continueToLevel1(state);
+      showLevel1Transition(state);
       render();
       return;
     }
@@ -198,10 +281,12 @@ export function setupEvents(
     const clearBtn = target.closest("[data-action='clear-hypothesis']");
     if (clearBtn instanceof HTMLElement && state.selectedSignId) {
       const hadLogogramGuess = Boolean(progress.logogramGuesses[state.selectedSignId]);
+      const hadSyllabicGuess = Object.values(progress.syllabicMap).includes(state.selectedSignId);
       clearSelectedSignFromSyllabicMap();
       delete progress.logogramGuesses[state.selectedSignId];
-      if (hadLogogramGuess) {
+      if (hadLogogramGuess || hadSyllabicGuess) {
         trackLevel0GuessChange(state);
+        trackLevel1GuessChange(state);
       }
       render();
       return;
@@ -227,11 +312,24 @@ export function setupEvents(
 
         // If a sign is selected, assign/overwrite it to this cell
         if (state.selectedSignId) {
+          const selectedSignId = state.selectedSignId;
+          const previousCellForSelected = Object.entries(progress.syllabicMap)
+            .find(([, signId]) => signId === selectedSignId)?.[0] ?? null;
+          const hadLogogramGuess = Boolean(progress.logogramGuesses[selectedSignId]);
+          const hasMeaningfulChange = previousCellForSelected !== cellId
+            || currentSign !== selectedSignId
+            || hadLogogramGuess;
+
+          if (!hasMeaningfulChange) {
+            return;
+          }
+
           clearSelectedSignFromSyllabicMap();
-          delete progress.logogramGuesses[state.selectedSignId];
+          delete progress.logogramGuesses[selectedSignId];
 
           // Assign the selected sign to this cell (overwrites if occupied)
-          progress.syllabicMap[cellId] = state.selectedSignId;
+          progress.syllabicMap[cellId] = selectedSignId;
+          trackLevel1GuessChange(state);
           render();
         }
       }
@@ -296,6 +394,9 @@ export function setupEvents(
 
     if (state.activeLevelId === "level0") {
       trackLevel0GuessChange(state);
+    }
+    if (state.activeLevelId === "level1") {
+      trackLevel1GuessChange(state);
     }
 
     if (target.value) {

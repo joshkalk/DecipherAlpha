@@ -49,6 +49,10 @@ body {
   color: #374151;
 }
 
+.transition-panel {
+  width: min(100%, 640px);
+}
+
 .opening-begin-btn {
   margin-top: 1rem;
   padding: 0.55rem 0.95rem;
@@ -141,6 +145,35 @@ body {
   flex: 1 0 100%;
   text-align: left;
   white-space: normal;
+}
+
+.level-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.level-switch-btn {
+  padding: 0.28rem 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #111827;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.level-switch-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.level-switch-btn.is-active {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  font-weight: 600;
 }
 
 h1,
@@ -420,6 +453,25 @@ p {
   background: #374151;
 }
 
+.level1-guidance-card {
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fcfcfd;
+}
+
+.level1-guidance-card h3 {
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.level1-guidance-card p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
 .bridge-message {
   margin: 0.75rem 0 1rem;
   padding: 0.7rem 0.8rem;
@@ -478,6 +530,20 @@ p {
   padding-left: 1.35rem;
 }
 
+.lexicon-group + .lexicon-group {
+  margin-top: 1rem;
+}
+
+.lexicon-group h4 {
+  margin-top: 0.7rem;
+}
+
+.lexicon-group-cue {
+  margin: 0.25rem 0 0.45rem;
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
 .lexicon-table {
   width: 100%;
   border-collapse: collapse;
@@ -512,6 +578,24 @@ p {
   font-weight: 500;
   color: #374151;
   background: #fcfcfd;
+}
+
+.syllable-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.syllable-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.12rem 0.35rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #ffffff;
+  line-height: 1.2;
 }
 
 .tools-section {
@@ -576,11 +660,37 @@ p {
   min-width: 60px;
 }
 
-.freq-col-bigram {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.4rem 0.5rem;
+.hypothesis-intro {
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fcfcfd;
+}
+
+.hypothesis-intro h3 {
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.hypothesis-intro p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+.hypothesis-alternative-note,
+.empty-state-text {
+  margin: 0.35rem 0 0.55rem;
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.hypothesis-alternative-note {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
 }
 
 /* Selected sign header for Hypothesis tab */
@@ -668,8 +778,16 @@ p {
 }
 
 /* CV Grid */
-.cv-grid-container {
+.cv-grid-section {
   margin-top: 1rem;
+}
+
+.cv-grid-section h3 {
+  margin-bottom: 0.25rem;
+}
+
+.cv-grid-container {
+  margin-top: 0.6rem;
   padding: 1rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -747,8 +865,9 @@ p {
   position: absolute;
   bottom: 2px;
   right: 4px;
-  font-size: 0.65rem;
-  color: #9ca3af;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #374151;
   pointer-events: none;
   background: rgba(255, 255, 255, 0.8);
   padding: 0 2px;
