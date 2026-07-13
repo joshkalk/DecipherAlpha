@@ -148,7 +148,7 @@ body {
 }
 
 .level-switcher {
-  display: flex;
+  display: none;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.45rem;

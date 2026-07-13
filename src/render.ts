@@ -830,7 +830,7 @@ function renderLevel0OpeningScreen(): string {
         <p>You have been handed a tutorial tablet written in the ancient Yot script.</p>
         <p>You can speak Yot, but you have never seen the language written down. The words are familiar. The signs are not.</p>
         <p>This tutorial tablet uses whole word signs: signs that stand for whole words.<br />If the same sign appears in more than one place, it means the same word each time.</p>
-        <p>Before you begin, open the game in full screen mode. The tablet and workbench are easier to use when both panels fit on screen.</p>
+        <p><strong>Before you begin, open the game in full screen mode. The tablet and workbench are easier to use when both panels fit on screen.</strong></p>
         <p><strong>Goal:</strong> Decipher the tutorial tablet by figuring out what each sign means.</p>
         <button class="opening-begin-btn" type="button" data-action="begin-level0">Begin decipherment</button>
       </section>
