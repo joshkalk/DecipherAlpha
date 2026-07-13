@@ -290,6 +290,13 @@ p {
   gap: 0.12rem;
 }
 
+.corpus-word-stack.is-guided-word-target {
+  border-radius: 6px;
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  background: #eff6ff;
+}
+
 .corpus-word-glyphs {
   display: inline-flex;
   align-items: flex-start;
@@ -598,6 +605,13 @@ p {
   line-height: 1.2;
 }
 
+.syllable-chip.is-highlighted-syllable {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #111827;
+  font-weight: 700;
+}
+
 .tools-section {
   margin-bottom: 1.5rem;
 }
@@ -693,7 +707,7 @@ p {
   background: #f9fafb;
 }
 
-/* Selected sign header for Hypothesis tab */
+/* Selected sign header for guess tabs */
 .selected-sign-header {
   padding: 1rem;
   border: 1px solid #e5e7eb;
@@ -903,6 +917,12 @@ p {
   background: #f9fafb;
   color: #9ca3af;
   cursor: not-allowed;
+}
+
+.logogram-guess-select option.is-required-option {
+  background: #eff6ff;
+  color: #111827;
+  font-weight: 700;
 }
 
 .logogram-guess-list {

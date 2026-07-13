@@ -26,6 +26,9 @@ function createLevel1GuidanceState(): Level1GuidanceState {
   return {
     hasOpenedLexicon: false,
     hasOpenedTools: false,
+    firstSyllableBridgeStep: "guard-carryover",
+    firstSyllableMisclick: false,
+    isShowingLexiconSyllableHighlight: false,
     guessChangeCount: 0,
     bestCorrectCount: 0,
     changesSinceBestCorrect: 0,

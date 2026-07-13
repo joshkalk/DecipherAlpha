@@ -21,7 +21,7 @@ export type Puzzle = {
   hasSyllabicSigns: boolean;
 };
 
-export type RightPaneTab = "instructions" | "hypothesis" | "tools" | "lexicon";
+export type RightPaneTab = "instructions" | "hypothesis" | "syllables" | "tools" | "lexicon";
 
 export type LevelProgress = {
   // Map of CV cell ids to sign ids, e.g. { "N-E": "sign1", "M-O": "sign2" }
@@ -46,6 +46,9 @@ export type Level0TutorialState = {
 export type Level1GuidanceState = {
   hasOpenedLexicon: boolean;
   hasOpenedTools: boolean;
+  firstSyllableBridgeStep: "guard-carryover" | "select-first-sign" | "open-lexicon" | "place-ne" | "ne-payoff" | "released";
+  firstSyllableMisclick: boolean;
+  isShowingLexiconSyllableHighlight: boolean;
   guessChangeCount: number;
   bestCorrectCount: number;
   changesSinceBestCorrect: number;
